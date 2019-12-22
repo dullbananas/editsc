@@ -1,0 +1,2 @@
+# editsc
+Survivalcraft world editor
