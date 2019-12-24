@@ -21,7 +21,7 @@ structs = {
 	'DirectoryEntry': (
 		'i' # Chunk X position, (1 unit equals 16 blocks, must be positive)
 		'i' # Chunk Z position, (1 unit equals 16 blocks, must be positive)
-		'i' # Index of chunk starting at 0; is -1 if entry is unused
+		'i' # Index of chunk starting at 0; is -1 if entry is unused or is the guard entry
 	),
 	'ChunkHeader': (
 		'I' # Must be 0xDEADBEEF
@@ -59,6 +59,12 @@ class Block:
 class SurfacePoint:
 	maxheight: int
 	temphumidity: int
+
+@dataclass
+class DirEntry:
+	x: int
+	z: int
+	index: int
 
 class Blocks:
 	def __init__(self, block_values):
@@ -99,9 +105,19 @@ class Chunk:
 
 class ChunksFile:
 	def __init__(self, data):
+		dir_entry_size = structs['DirectoryEntry'].size
+		used_directory_size = dir_entry_size * 65536 # Does not include guard entry
+		directory_size = dir_entry_size * 65537
+		# Iterate through directory entries
+		dir_objs = []
+		# TODO: change to used_directory_size
+		dir_data = data[:used_directory_size]
+		for entry_data in grouper(dir_data, dir_entry_size, b'\0'):
+			x, z, index = structs['DirectoryEntry'].unpack(entry_data)
+			dir_objs.append(DirEntry(x=x, z=z, index=index))
+		self.directory = numpy.array(dir_objs, dtype=DirEntry)
 		# Iterate through the chunks
 		self.chunks = {}
-		directory_size = structs['DirectoryEntry'].size * 65537
 		chunks_data = data[directory_size:]
 		chunk_size = (
 			structs['ChunkHeader'].size
