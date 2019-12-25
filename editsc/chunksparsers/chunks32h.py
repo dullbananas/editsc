@@ -3,6 +3,7 @@
 
 import numpy
 import struct
+import collections
 import itertools
 from dataclasses import dataclass
 
@@ -38,7 +39,7 @@ structs = {
 	'SurfacePoint': (
 		'B' # Maximum height at this point
 		'B' # 4 low bits contain temperature, 4 high bits contain humidity
-		'B' # Currently unused; must be 0
+		'B' # Currently unused; must be 0 (seems to actually be 65)
 		'B' # Currently unused; must be 0
 	),
 }
@@ -54,17 +55,25 @@ structs = {
 @dataclass
 class Block:
 	blockdata: int
+	def serialize(self):
+		return structs['Block'].pack(self.blockdata)
 
 @dataclass
 class SurfacePoint:
 	maxheight: int
 	temphumidity: int
+	unused1: int
+	unused2: int
+	def serialize(self):
+		return structs['SurfacePoint'].pack(self.maxheight, self.temphumidity, self.unused1, self.unused2)
 
 @dataclass
 class DirEntry:
 	x: int
 	z: int
 	index: int
+	def serialize(self):
+		return structs['DirectoryEntry'].pack(self.x, self.z, self.index)
 
 class Blocks:
 	def __init__(self, block_values):
@@ -81,12 +90,15 @@ class Blocks:
 		x, y, z = key
 		index = y + x * 256 + z * 256 * 16
 		self.block_array[index] = value
+	def serialize(self):
+		for block in self.block_array:
+			yield block.serialize()
 
 class SurfacePoints:
 	def __init__(self, surface_pt_values):
 		surface_pt_objects = [
-			SurfacePoint(maxheight=y, temphumidity=th)
-			for (y, th, *unused) in surface_pt_values
+			SurfacePoint(maxheight=y, temphumidity=th, unused1=u1, unused2=u2)
+			for (y, th, u1, u2) in surface_pt_values
 		]
 		self.surface_pt_array = numpy.array(surface_pt_objects, dtype=SurfacePoint)
 	def __getitem__(self, key):
@@ -97,27 +109,41 @@ class SurfacePoints:
 		x, z = key
 		index = x + z * 16
 		self.surface_pt_array[index]
+	def serialize(self):
+		for surface_pt in self.surface_pt_array:
+			yield surface_pt.serialize()
 
 class Chunk:
-	def __init__(self, block_values, surface_pt_values):
+	def __init__(self, block_values, surface_pt_values, x, z):
 		self.blocks = Blocks(block_values)
 		self.surface_pts = SurfacePoints(surface_pt_values)
+		self.x = x
+		self.z = z
+	def serialize(self):
+		# Header
+		yield structs['ChunkHeader'].pack(0xDEADBEEF, 0xFFFFFFFE, self.x, self.z)
+		# Blocks
+		#yield from self.blocks.serialize()
+		yield b''.join([i for i in self.blocks.serialize()])
+		# Surface points
+		#yield from self.surface_pts.serialize()
+		yield b''.join([i for i in self.surface_pts.serialize()])
 
 class ChunksFile:
 	def __init__(self, data):
+		self.ogdata = data
 		dir_entry_size = structs['DirectoryEntry'].size
 		used_directory_size = dir_entry_size * 65536 # Does not include guard entry
 		directory_size = dir_entry_size * 65537
 		# Iterate through directory entries
 		dir_objs = []
-		# TODO: change to used_directory_size
 		dir_data = data[:used_directory_size]
 		for entry_data in grouper(dir_data, dir_entry_size, b'\0'):
 			x, z, index = structs['DirectoryEntry'].unpack(entry_data)
 			dir_objs.append(DirEntry(x=x, z=z, index=index))
 		self.directory = numpy.array(dir_objs, dtype=DirEntry)
 		# Iterate through the chunks
-		self.chunks = {}
+		self.chunks = collections.OrderedDict()
 		chunks_data = data[directory_size:]
 		chunk_size = (
 			structs['ChunkHeader'].size
@@ -146,4 +172,36 @@ class ChunksFile:
 			for surface_pt_data in grouper(surface_pts_data, surface_pt_size, b'\0'):
 				surface_pt_values.append(structs['SurfacePoint'].unpack(surface_pt_data))
 			# Append new Chunk object to self.chunks
-			self.chunks[(x, z)] = Chunk(block_values, surface_pt_values)
+			self.chunks[(x, z)] = Chunk(block_values, surface_pt_values, x, z)
+
+	def serialize(self):
+		result = bytearray()
+		# Directory entries
+		for entry in self.directory:
+			result += entry.serialize()
+		assert self.ogdata.startswith(result)
+		# Guard directory entry
+		result += structs['DirectoryEntry'].pack(0, 0, -1)
+		assert self.ogdata.startswith(result)
+		# Chunks
+		for i, ((x, z), chunk) in enumerate(self.chunks.items()):
+			for entry in self.directory:
+				if (x, z) == (entry.x, entry.z):
+					assert i == entry.index
+			for data in chunk.serialize():
+				result += data
+				assert self.ogdata.startswith(result)
+			# Chunk header
+			#result += structs['ChunkHeader'].pack(0xDEADBEEF, 0xFFFFFFFE, x, z)
+			#assert self.ogdata.startswith(result)
+
+			# Blocks
+			#for block in chunk.blocks.block_array:
+				#result += structs['Block'].pack(block.blockdata)
+			#assert self.ogdata.startswith(result)
+			# Surface points
+			#for surface_pt in chunk.surface_pts.surface_pt_array:
+				#result += structs['SurfacePoint'].pack(surface_pt.maxheight, surface_pt.temphumidity, 0, 0)
+				#assert self.ogdata.startswith(result)
+		assert self.ogdata == result
+		return result
