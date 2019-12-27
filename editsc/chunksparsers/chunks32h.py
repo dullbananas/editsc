@@ -6,6 +6,7 @@ import struct
 import collections
 import itertools
 from dataclasses import dataclass
+from . import utils
 
 
 def grouper(iterable, n, fillvalue=None):
@@ -57,6 +58,28 @@ class Block:
 	blockdata: int
 	def serialize(self):
 		return structs['Block'].pack(self.blockdata)
+
+	@property
+	def blocktype(self):
+		return utils.get_bits(self.blockdata, 0, 9)
+	@blocktype.setter
+	def blocktype(self, new):
+		self.blockdata = utils.set_bits(self.blockdata, 0, 9, new)
+
+	@property
+	def light(self):
+		return utils.get_bits(self.blockdata, 10, 13)
+	@light.setter
+	def light(self, new):
+		self.blockdata = utils.set_bits(self.blockdata, 10, 13, new)
+
+	@property
+	def state(self):
+		return utils.get_bits(self.blockdata, 14, 31)
+	@state.setter
+	def state(self, new):
+		self.blockdata = utils.set_bits(self.blockdata, 14, 31, new)
+
 
 @dataclass
 class SurfacePoint:
@@ -179,10 +202,10 @@ class ChunksFile:
 		# Directory entries
 		for entry in self.directory:
 			result += entry.serialize()
-		assert self.ogdata.startswith(result)
+		#assert self.ogdata.startswith(result)
 		# Guard directory entry
 		result += structs['DirectoryEntry'].pack(0, 0, -1)
-		assert self.ogdata.startswith(result)
+		#assert self.ogdata.startswith(result)
 		# Chunks
 		for i, ((x, z), chunk) in enumerate(self.chunks.items()):
 			for entry in self.directory:
@@ -190,7 +213,7 @@ class ChunksFile:
 					assert i == entry.index
 			for data in chunk.serialize():
 				result += data
-				assert self.ogdata.startswith(result)
+				#assert self.ogdata.startswith(result)
 			# Chunk header
 			#result += structs['ChunkHeader'].pack(0xDEADBEEF, 0xFFFFFFFE, x, z)
 			#assert self.ogdata.startswith(result)
@@ -203,5 +226,5 @@ class ChunksFile:
 			#for surface_pt in chunk.surface_pts.surface_pt_array:
 				#result += structs['SurfacePoint'].pack(surface_pt.maxheight, surface_pt.temphumidity, 0, 0)
 				#assert self.ogdata.startswith(result)
-		assert self.ogdata == result
+		#assert self.ogdata == result
 		return result
