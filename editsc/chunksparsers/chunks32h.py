@@ -55,6 +55,7 @@ structs = {
 
 @dataclass
 class Block:
+	__slots__ = ('blockdata',)
 	blockdata: int
 	def serialize(self):
 		return structs['Block'].pack(self.blockdata)
@@ -83,6 +84,7 @@ class Block:
 
 @dataclass
 class SurfacePoint:
+	__slots__ = ('maxheight', 'temphumidity', 'unused1', 'unused2')
 	maxheight: int
 	temphumidity: int
 	unused1: int
@@ -92,6 +94,7 @@ class SurfacePoint:
 
 @dataclass
 class DirEntry:
+	__slots__ = ('x', 'z', 'index')
 	x: int
 	z: int
 	index: int
@@ -146,8 +149,8 @@ class Chunk:
 		# Header
 		yield structs['ChunkHeader'].pack(0xDEADBEEF, 0xFFFFFFFE, self.x, self.z)
 		# Blocks
-		#yield from self.blocks.serialize()
-		yield b''.join([i for i in self.blocks.serialize()])
+		yield from self.blocks.serialize()
+		#yield b''.join([i for i in self.blocks.serialize()])
 		# Surface points
 		#yield from self.surface_pts.serialize()
 		yield b''.join([i for i in self.surface_pts.serialize()])
