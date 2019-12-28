@@ -1,0 +1,3 @@
+graft editsc/static
+graft editsc/templates
+global-exclude *.pyc
