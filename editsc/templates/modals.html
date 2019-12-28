@@ -1,0 +1,48 @@
+{% macro modal(id, title, close_button=True, buttons=[], dismiss_button='') -%}
+	{#
+	- id: The id attribute the modal element will have.
+	- title: The title that will appear at the top of the modal.
+	- close_button: Whether or not to display the X button on the top right.
+	- buttons: Should be an array of tuples with the following format: [
+		(title, class, onclick),
+	]
+	where title is the content of the button, class is the class to put on the
+	class, and onlick will be set to the button's onclick attribute. example:
+	('Do Something', 'btn-primary', 'doSomething();')
+	- dismiss button: Optional content of a button that will dismiss this modal.
+	Example: 'Dismiss'
+	(By default this button won't be created)
+
+	This macro should be used with a call block. The contents of the call block
+	will be used as the body of the modal.
+	#}
+	<div class="modal fade" id="{{ id }}" data-backdrop="static" tabindex="-1" role="dialog" aria-labelledby="{{ id }}-label" aria-hidden="false">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="{{ id }}-label">{{ title }}</h5>
+					{% if close_button %}
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+					{% endif %}
+				</div>
+				<div class="modal-body">
+					{{ caller() }}
+				</div>
+				<div class="modal-footer">
+					{% for (title, classname, onclick) in buttons %}
+						<button class="btn {{ classname }}" onclick="{{ onclick }}">
+							{{ title }}
+						</button>
+					{% endfor %}
+					{% if dismiss_button != '' %}
+						<button type="button" class="btn btn-primary" data-dismiss="modal">
+							{{ dismiss_button }}
+						</button>
+					{% endif %}
+				</div>
+			</div>
+		</div>
+	</div>
+{%- endmacro %}
