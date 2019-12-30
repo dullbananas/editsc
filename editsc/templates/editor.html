@@ -14,26 +14,43 @@
 		<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
 		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/threejs/r84/three.min.js"></script>
 	</head>
 
 
 	<body>
 
 
-		<p>The editor will be here</p>
-
-
 		<!-- World upload modal -->
 		{% call modal(id='upload-modal', title='Import world', buttons=[
-			('Test Button', 'btn-secondary', 'alert("Hello");'),
-		], dismiss_button='Dismiss', close_button=False) %}
-			<p>Not implemented yet. For now this is just a test popup</p>
+			('Start Editing', 'btn-primary', 'loadWorld();'),
+		], close_button=False) %}
+			<p>Upload a .scworld file:</p>
+			<input type="file", id="scworld-input" />
+			<!-- Errors -->
+			<p id="upload-count-error" class="text-danger upload-error" style="display:none;">
+				You need to upload exactly one file.
+			</p>
+			<p id="upload-extract-error" class="text-danger upload-error" style="display:none;"></p>
+			<p id="upload-general-error" class="text-danger upload-error" style="display:none;">
+				An error occured.
+			</p>
 		{% endcall %}
 
 
+		<!-- The canvas where the world will be rendered -->
+		<canvas id="world-canvas" />
+
+
+		<script src="{{ url_for('static', filename='zipjs/zip.js') }}"></script>
 		<script>
-			$('#upload-modal').modal('show');
+			zip.workerScriptsPath = '{{ url_for("static", filename="zipjs/") }}';
 		</script>
+		<script src="{{ url_for('static', filename='KaitaiStream.js') }}"></script>
+		<script src="{{ url_for('static', filename='Chunks32h.js') }}"></script>
+		{% assets 'script' %}
+			<script src="{{ ASSET_URL }}"></script>
+		{% endassets %}
 
 
 	</body>
