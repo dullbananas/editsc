@@ -11,21 +11,33 @@ var Events;
 (function (Events) {
     Events.keys = {}; // Object mapping keys to booleans telling whether or not they're down
     Events.intervals = {}; // Same thing but the values are the return value of winow.setInterval
+    Events.keyCount = 0; // Number of keys that are down
 })(Events || (Events = {}));
 // Initializes Three.js
 function initThree() {
     Three.scene = new THREE.Scene();
     Three.scene.background = new THREE.Color(0xbbddff);
+    Three.scene.fog = new THREE.Fog(0xbbddff, 28, 32);
     Three.camera = new THREE.PerspectiveCamera(75, // Field of view
     window.innerWidth / window.innerHeight, // Aspect ratio
     0.1, // Near clipping plane
     32);
     Three.renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        canvas: $('#world-canvas')[0]
+        antialias: false,
+        canvas: $('#world-canvas')[0],
+        stencil: false
     });
     Three.renderer.setSize(window.innerWidth, window.innerHeight);
     $('body').append(Three.renderer.domElement);
+    // FPS counter
+    Three.stats = new Stats();
+    Three.stats.setMode(0);
+    $(Three.stats.domElement).css({
+        'position': 'absolute',
+        'bottom': '0',
+        'left': '0'
+    });
+    $('body').append(Three.stats.domElement);
 }
 // Calculates block index
 function blockIndex(x, y, z) {
@@ -63,21 +75,62 @@ function loadChunks() {
     Three.camera.position.y = 64;
     Three.camera.position.z = Imported.chunks.chunks[0].header.zPosition * 4;
     // World blocks
-    var geometry = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+    var geometry = new THREE.BoxBufferGeometry(0.25, 0.25, 0.25);
     var material = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
+    THREE.Object3D.DefaultMatrixAutoUpdate = false;
     for (var i = 0; i < Imported.chunks.chunks.length; i++) {
+        var transform = new THREE.Object3D();
         var chunk = Imported.chunks.chunks[i];
         var xOffset = chunk.header.xPosition * 16;
         var zOffset = chunk.header.zPosition * 16;
         for (var x = 0; x < 16; x++) {
             for (var y = 0; y < 256; y++) {
                 for (var z = 0; z < 16; z++) {
-                    if (bType(chunk.blocks[blockIndex(x, y, z)].data) != 0) {
+                    var index = blockIndex(x, y, z);
+                    // Determine if this block is covered up by other blocks and doesn't need to be rendered
+                    var needsRendering = false;
+                    if (x == 15 || x == 0 || y == 255 || y == 0 || z == 15 || z == 0) {
+                        needsRendering = true;
+                    }
+                    else {
+                        var outerCoords = [
+                            [x, y, z + 1],
+                            [x, y, z - 1],
+                            [x, y + 1, z],
+                            [x, y - 1, z],
+                            [x + 1, y, z],
+                            [x - 1, y, z],
+                        ];
+                        for (var ci = 0; ci < 6; ci++) {
+                            var c = outerCoords[ci];
+                            var block = chunk.blocks[blockIndex(c[0], c[1], c[2])];
+                            if (bType(block.data) === 0) {
+                                //if (bType(chunk.blocks[blockIndex(c[0], c[1], c[2])].data) == 0) {
+                                needsRendering = true;
+                                break;
+                            }
+                        }
+                        /*	catch (err) {
+                                // If the block is at the edge
+                                needsRendering = true;
+                                break;
+                            }
+                        }*/
+                    }
+                    if (bType(chunk.blocks[index].data) != 0 && needsRendering) {
                         var cube = new THREE.Mesh(geometry, material);
                         cube.position.x = (x + xOffset) / 4;
                         cube.position.y = y / 4;
                         cube.position.z = (z + zOffset) / 4;
                         Three.scene.add(cube);
+                        cube.updateMatrix();
+                        /*transform.position.set(
+                            (x + xOffset) / 4,
+                            y / 4,
+                            (z + zOffset) / 4,
+                        );
+                        transform.updateMatrix();
+                        cube.setMatrixAt(index, transform.matrix);*/
                     }
                 }
             }
@@ -86,9 +139,14 @@ function loadChunks() {
     //console.log(Three.camera);
     function animate() {
         requestAnimationFrame(animate);
-        Three.renderer.render(Three.scene, Three.camera);
+        if (Events.keyCount > 0) {
+            Three.renderer.render(Three.scene, Three.camera);
+        }
+        Three.stats.update();
     }
     animate();
+    // Do first render
+    Three.renderer.render(Three.scene, Three.camera);
 }
 // Called when the file upload form is submitted
 function loadWorld() {
@@ -159,11 +217,13 @@ $(document).ready(function () {
                 }
             }, 50);
             Events.keys[event.key] = true;
+            Events.keyCount += 1;
         }
     });
     $('body').keyup(function (event) {
         Events.keys[event.key] = false;
         window.clearInterval(Events.intervals[event.key]);
+        Events.keyCount -= 1;
     });
 });
 // Do stuff on load
