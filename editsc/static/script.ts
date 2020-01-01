@@ -35,12 +35,12 @@ namespace Events {
 function initThree() {
 	Three.scene = new THREE.Scene();
 	Three.scene.background = new THREE.Color(0xbbddff);
-	Three.scene.fog = new THREE.Fog(0xbbddff, 28, 32);
+	Three.scene.fog = new THREE.Fog(0xbbddff, 48, 64);
 	Three.camera = new THREE.PerspectiveCamera(
 		75, // Field of view
 		window.innerWidth / window.innerHeight, // Aspect ratio
 		0.1, // Near clipping plane
-		32, // Far clipping plane
+		64, // Far clipping plane
 	);
 	Three.renderer = new THREE.WebGLRenderer({
 		antialias: false,
@@ -110,7 +110,7 @@ function _bType(data: number) {
 const bType = memoize(_bType);
 
 
-const CUBE_SIZE = 0.25;
+const CUBE_SIZE = 1;
 // Called after Chunks32h.dat file is successfully parsed
 function loadChunks() {
 	initThree();
@@ -126,19 +126,20 @@ function loadChunks() {
 	light.target = lightTarget;*/
 	let ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 	Three.scene.add(ambientLight);
-	Three.pointLight = new THREE.PointLight(0xffffff, 1, 32);
+	Three.pointLight = new THREE.PointLight(0xffffff, 1, 64);
 	Three.scene.add(Three.pointLight);
 	// Camera
-	Three.camera.position.x = Imported.chunks.chunks[0].header.xPosition * 4;
-	Three.camera.position.y = 20;
-	Three.camera.position.z = Imported.chunks.chunks[0].header.zPosition * 4;
+	Three.camera.position.x = Imported.chunks.chunks[0].header.xPosition * 16 / CUBE_SIZE;
+	Three.camera.position.y = 80 * CUBE_SIZE;
+	Three.camera.position.z = Imported.chunks.chunks[0].header.zPosition * 16 / CUBE_SIZE;
+	console.log(Three.camera.position)
 	Three.pointLight.position.set(
 		Three.camera.position.x,
 		Three.camera.position.y,
 		Three.camera.position.z,
 	);
 	// World blocks
-	let geometry = new THREE.BoxBufferGeometry(0.25, 0.25, 0.25);
+	let geometry = new THREE.BoxBufferGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
 	let material = new THREE.MeshLambertMaterial({color: 0x00ff00});
 	THREE.Object3D.DefaultMatrixAutoUpdate = false;
 	for (var i = 0; i < Imported.chunks.chunks.length; i++) {
@@ -188,9 +189,9 @@ function loadChunks() {
 					}
 					if (needsRendering) {
 						let cube = new THREE.Mesh(geometry, material);
-						cube.position.x = (x + xOffset) / 4;
-						cube.position.y = y / 4;
-						cube.position.z = (z + zOffset) / 4;
+						cube.position.x = (x + xOffset) * CUBE_SIZE;
+						cube.position.y = y * CUBE_SIZE;
+						cube.position.z = (z + zOffset) * CUBE_SIZE;
 						Three.scene.add(cube);
 						cube.updateMatrix();
 						/*transform.position.set(
@@ -200,6 +201,9 @@ function loadChunks() {
 						);
 						transform.updateMatrix();
 						cube.setMatrixAt(index, transform.matrix);*/
+						if (x == 0 && y == 0) {
+							console.log(cube.position);
+						}
 					}
 				}
 			}
