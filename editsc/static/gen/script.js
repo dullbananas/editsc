@@ -38,58 +38,100 @@ function initThree() {
         'left': '0'
     });
     $('body').append(Three.stats.domElement);
+    function animate() {
+        if (Events.keyCount > 0) {
+            Three.renderer.render(Three.scene, Three.camera);
+        }
+        Three.stats.update();
+        requestAnimationFrame(animate);
+    }
+    animate();
+    Three.renderer.render(Three.scene, Three.camera);
+}
+// Decorator that caches function result
+// Copied from https://dev.to/carlillo/understanding-javascripttypescript-memoization-o7k
+function memoize(fn) {
+    var cache = {};
+    return function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        var strArgs = JSON.stringify(args);
+        var result = (cache[strArgs] =
+            typeof cache[strArgs] === 'undefined'
+                ? fn.apply(void 0, args) : cache[strArgs]);
+        return result;
+    };
 }
 // Calculates block index
-function blockIndex(x, y, z) {
+/*function _blockIndex(x: number, y: number, z: number) {
     return y + x * 256 + z * 256 * 16;
 }
+const blockIndex = memoize(_blockIndex);*/
+// Maps x y and z values to block indexes in a multidimensional array
+var blockIndex = [];
+for (var x = 0; x < 16; x++) {
+    blockIndex.push([]);
+    for (var y = 0; y < 256; y++) {
+        blockIndex[x].push([]);
+        for (var z = 0; z < 16; z++) {
+            blockIndex[x][y].push([]);
+            blockIndex[x][y][z] = y + x * 256 + z * 256 * 16;
+        }
+    }
+}
 // Gets type of block
-function bType(data) {
+function _bType(data) {
     return 1023 & data;
 }
+var bType = memoize(_bType);
+var CUBE_SIZE = 0.25;
 // Called after Chunks32h.dat file is successfully parsed
 function loadChunks() {
     initThree();
-    // Cube
-    /*let geometry = new THREE.BoxGeometry(0.25, 0.25, 0.25);
-    let material = new THREE.MeshLambertMaterial({color: 0x00ff00});
-    let cube = new THREE.Mesh(geometry, material);
-    cube.position.y = 64;
-    Three.scene.add(cube);*/
-    //console.log(cube);
     // Light
-    var light = new THREE.DirectionalLight(0xffffff, 1);
+    /*let light = new THREE.DirectionalLight(0xffffff, 1);
     //light.position.y = 1;
     Three.scene.add(light);
-    var lightTarget = new THREE.Object3D();
+    let lightTarget = new THREE.Object3D();
     lightTarget.position.x = 0.1;
     lightTarget.position.y = 0;
     lightTarget.position.z = 0.2;
     Three.scene.add(lightTarget);
-    light.target = lightTarget;
-    var ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+    light.target = lightTarget;*/
+    var ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
     Three.scene.add(ambientLight);
-    //console.log(light);
+    Three.pointLight = new THREE.PointLight(0xffffff, 1, 32);
+    Three.scene.add(Three.pointLight);
     // Camera
     Three.camera.position.x = Imported.chunks.chunks[0].header.xPosition * 4;
-    Three.camera.position.y = 64;
+    Three.camera.position.y = 20;
     Three.camera.position.z = Imported.chunks.chunks[0].header.zPosition * 4;
+    Three.pointLight.position.set(Three.camera.position.x, Three.camera.position.y, Three.camera.position.z);
     // World blocks
     var geometry = new THREE.BoxBufferGeometry(0.25, 0.25, 0.25);
     var material = new THREE.MeshLambertMaterial({ color: 0x00ff00 });
     THREE.Object3D.DefaultMatrixAutoUpdate = false;
     for (var i = 0; i < Imported.chunks.chunks.length; i++) {
+        //console.log([i+1, Imported.chunks.chunks.length])
         var transform = new THREE.Object3D();
         var chunk = Imported.chunks.chunks[i];
         var xOffset = chunk.header.xPosition * 16;
         var zOffset = chunk.header.zPosition * 16;
         for (var x = 0; x < 16; x++) {
+            console.log([x + 1 + i * 16, Imported.chunks.chunks.length * 16]);
             for (var y = 0; y < 256; y++) {
                 for (var z = 0; z < 16; z++) {
-                    var index = blockIndex(x, y, z);
+                    var index = blockIndex[x][y][z];
                     // Determine if this block is covered up by other blocks and doesn't need to be rendered
                     var needsRendering = false;
-                    if (x == 15 || x == 0 || y == 255 || y == 0 || z == 15 || z == 0) {
+                    if (bType(chunk.blocks[index].data) == 0) {
+                        // Air
+                        needsRendering = false;
+                    }
+                    else if (x == 15 || x == 0 || y == 255 || y == 0 || z == 15 || z == 0) {
+                        // Block at edge of chunk
                         needsRendering = true;
                     }
                     else {
@@ -103,7 +145,7 @@ function loadChunks() {
                         ];
                         for (var ci = 0; ci < 6; ci++) {
                             var c = outerCoords[ci];
-                            var block = chunk.blocks[blockIndex(c[0], c[1], c[2])];
+                            var block = chunk.blocks[blockIndex[c[0]][c[1]][c[2]]];
                             if (bType(block.data) === 0) {
                                 //if (bType(chunk.blocks[blockIndex(c[0], c[1], c[2])].data) == 0) {
                                 needsRendering = true;
@@ -117,7 +159,7 @@ function loadChunks() {
                             }
                         }*/
                     }
-                    if (bType(chunk.blocks[index].data) != 0 && needsRendering) {
+                    if (needsRendering) {
                         var cube = new THREE.Mesh(geometry, material);
                         cube.position.x = (x + xOffset) / 4;
                         cube.position.y = y / 4;
@@ -135,18 +177,11 @@ function loadChunks() {
                 }
             }
         }
+        Three.renderer.render(Three.scene, Three.camera);
     }
     //console.log(Three.camera);
-    function animate() {
-        requestAnimationFrame(animate);
-        if (Events.keyCount > 0) {
-            Three.renderer.render(Three.scene, Three.camera);
-        }
-        Three.stats.update();
-    }
-    animate();
     // Do first render
-    Three.renderer.render(Three.scene, Three.camera);
+    //Three.renderer.render(Three.scene, Three.camera);
 }
 // Called when the file upload form is submitted
 function loadWorld() {
@@ -161,14 +196,21 @@ function loadWorld() {
             try {
                 var kaitai_success = false;
                 for (var i = 0; i < entries.length; i++) {
-                    if (entries[i].filename.endsWith('/Chunks32h.dat')) {
+                    console.log('Processing ' + entries[i].filename);
+                    if (entries[i].filename.endsWith('Chunks32h.dat')) {
                         // Convert to ArrayBuffer
+                        console.log('Getting zip entry data');
                         entries[i].getData(new zip.BlobWriter, function (blob) {
+                            console.log('Creating FileReader');
                             var fileReader = new FileReader();
+                            console.log('Reading blob as ArrayBuffer');
                             fileReader.readAsArrayBuffer(blob);
                             fileReader.onload = function (event) {
                                 // Initialize Kaitai struct object
+                                console.log('Creating ArrayBuffer');
                                 var arrayBuffer = fileReader.result;
+                                console.log('ArrayBuffer created');
+                                console.log(['array buffer size', arrayBuffer.byteLength]);
                                 Imported.chunks = new Chunks32h(new KaitaiStream(arrayBuffer));
                                 loadChunks();
                             };
@@ -194,28 +236,30 @@ function loadWorld() {
 $(document).ready(function () {
     $('body').keydown(function (event) {
         if (!Events.keys[event.key]) {
+            var n_1 = 1;
             Events.intervals[event.key] = window.setInterval(function () {
-                var n = 0.5;
                 switch (event.key) {
                     case 'w':
-                        Three.camera.translateZ(-n);
+                        Three.camera.translateZ(-n_1);
                         break;
                     case 's':
-                        Three.camera.translateZ(n);
+                        Three.camera.translateZ(n_1);
                         break;
                     case 'a':
-                        Three.camera.translateX(-n);
+                        Three.camera.translateX(-n_1);
                         break;
                     case 'd':
-                        Three.camera.translateX(n);
+                        Three.camera.translateX(n_1);
                         break;
                     case 'q':
-                        Three.camera.translateY(-n);
+                        Three.camera.translateY(-n_1);
                         break;
                     case 'e':
-                        Three.camera.translateY(n);
+                        Three.camera.translateY(n_1);
+                        break;
                 }
-            }, 50);
+                Three.pointLight.position.set(Three.camera.position.x, Three.camera.position.y, Three.camera.position.z);
+            }, 1000 / 60);
             Events.keys[event.key] = true;
             Events.keyCount += 1;
         }

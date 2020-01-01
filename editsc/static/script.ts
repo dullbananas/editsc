@@ -19,6 +19,7 @@ namespace Three {
 	export var camera: any;
 	export var renderer: any;
 	export var stats: any;
+	export var pointLight: any;
 }
 
 
@@ -57,32 +58,64 @@ function initThree() {
 		'left': '0',
 	});
 	$('body').append(Three.stats.domElement);
+	function animate() {
+		if (Events.keyCount > 0) {
+			Three.renderer.render(Three.scene, Three.camera);
+		}
+		Three.stats.update();
+		requestAnimationFrame(animate);
+	}
+	animate();
+	Three.renderer.render(Three.scene, Three.camera);
 }
 
+
+// Decorator that caches function result
+// Copied from https://dev.to/carlillo/understanding-javascripttypescript-memoization-o7k
+function memoize(fn) {
+	const cache = {};
+	return function(...args) {
+		const strArgs = JSON.stringify(args);
+		const result = (
+			cache[strArgs] =
+			typeof cache[strArgs] === 'undefined'
+			? fn(...args)
+			: cache[strArgs]
+		);
+		return result;
+	}
+}
 
 // Calculates block index
-function blockIndex(x: number, y: number, z: number) {
+/*function _blockIndex(x: number, y: number, z: number) {
 	return y + x * 256 + z * 256 * 16;
 }
+const blockIndex = memoize(_blockIndex);*/
+// Maps x y and z values to block indexes in a multidimensional array
+let blockIndex = [];
+for (var x = 0; x < 16; x++) {
+	blockIndex.push([]);
+	for (var y = 0; y < 256; y++) {
+		blockIndex[x].push([]);
+		for (var z = 0; z < 16; z++) {
+			blockIndex[x][y].push([]);
+			blockIndex[x][y][z] = y + x * 256 + z * 256 * 16;
+		}
+	}
+}
 // Gets type of block
-function bType(data: number) {
+function _bType(data: number) {
 	return 0b1111111111 & data;
 }
+const bType = memoize(_bType);
 
 
+const CUBE_SIZE = 0.25;
 // Called after Chunks32h.dat file is successfully parsed
 function loadChunks() {
 	initThree();
-
-	// Cube
-	/*let geometry = new THREE.BoxGeometry(0.25, 0.25, 0.25);
-	let material = new THREE.MeshLambertMaterial({color: 0x00ff00});
-	let cube = new THREE.Mesh(geometry, material);
-	cube.position.y = 64;
-	Three.scene.add(cube);*/
-	//console.log(cube);
 	// Light
-	let light = new THREE.DirectionalLight(0xffffff, 1);
+	/*let light = new THREE.DirectionalLight(0xffffff, 1);
 	//light.position.y = 1;
 	Three.scene.add(light);
 	let lightTarget = new THREE.Object3D();
@@ -90,19 +123,26 @@ function loadChunks() {
 	lightTarget.position.y = 0;
 	lightTarget.position.z = 0.2;
 	Three.scene.add(lightTarget);
-	light.target = lightTarget;
-	let ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+	light.target = lightTarget;*/
+	let ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 	Three.scene.add(ambientLight);
-	//console.log(light);
+	Three.pointLight = new THREE.PointLight(0xffffff, 1, 32);
+	Three.scene.add(Three.pointLight);
 	// Camera
 	Three.camera.position.x = Imported.chunks.chunks[0].header.xPosition * 4;
-	Three.camera.position.y = 64;
+	Three.camera.position.y = 20;
 	Three.camera.position.z = Imported.chunks.chunks[0].header.zPosition * 4;
+	Three.pointLight.position.set(
+		Three.camera.position.x,
+		Three.camera.position.y,
+		Three.camera.position.z,
+	);
 	// World blocks
 	let geometry = new THREE.BoxBufferGeometry(0.25, 0.25, 0.25);
 	let material = new THREE.MeshLambertMaterial({color: 0x00ff00});
 	THREE.Object3D.DefaultMatrixAutoUpdate = false;
 	for (var i = 0; i < Imported.chunks.chunks.length; i++) {
+		//console.log([i+1, Imported.chunks.chunks.length])
 		let transform = new THREE.Object3D();
 		let chunk: any = Imported.chunks.chunks[i];
 		let xOffset = chunk.header.xPosition * 16;
@@ -110,10 +150,15 @@ function loadChunks() {
 		for (var x = 0; x < 16; x++) {
 			for (var y = 0; y < 256; y++) {
 				for (var z = 0; z < 16; z++) {
-					let index: number = blockIndex(x, y, z);
+					let index: number = blockIndex[x][y][z];
 					// Determine if this block is covered up by other blocks and doesn't need to be rendered
 					let needsRendering: boolean = false;
-					if (x == 15 || x == 0 || y == 255 || y == 0 || z == 15 || z == 0) {
+					if (bType(chunk.blocks[index].data) == 0) {
+						// Air
+						needsRendering = false;
+					}
+					else if (x == 15 || x == 0 || y == 255 || y == 0 || z == 15 || z == 0) {
+						// Block at edge of chunk
 						needsRendering = true;
 					}
 					else {
@@ -127,7 +172,7 @@ function loadChunks() {
 						];
 						for (var ci = 0; ci < 6; ci++) {
 							let c = outerCoords[ci];
-							var block = chunk.blocks[blockIndex(c[0], c[1], c[2])];
+							var block = chunk.blocks[blockIndex[c[0]][c[1]][c[2]]];
 							if (bType(block.data) === 0) {
 							//if (bType(chunk.blocks[blockIndex(c[0], c[1], c[2])].data) == 0) {
 								needsRendering = true;
@@ -141,7 +186,7 @@ function loadChunks() {
 							}
 						}*/
 					}
-					if (bType(chunk.blocks[index].data) != 0 && needsRendering) {
+					if (needsRendering) {
 						let cube = new THREE.Mesh(geometry, material);
 						cube.position.x = (x + xOffset) / 4;
 						cube.position.y = y / 4;
@@ -159,18 +204,11 @@ function loadChunks() {
 				}
 			}
 		}
+		Three.renderer.render(Three.scene, Three.camera);
 	}
 	//console.log(Three.camera);
-	function animate() {
-		requestAnimationFrame(animate);
-		if (Events.keyCount > 0) {
-			Three.renderer.render(Three.scene, Three.camera);
-		}
-		Three.stats.update();
-	}
-	animate();
 	// Do first render
-	Three.renderer.render(Three.scene, Three.camera);
+	//Three.renderer.render(Three.scene, Three.camera);
 }
 
 
@@ -189,14 +227,21 @@ function loadWorld() {
 			try {
 				var kaitai_success = false;
 				for (var i = 0; i < entries.length; i++) {
-					if (entries[i].filename.endsWith('/Chunks32h.dat')) {
+					console.log('Processing ' + entries[i].filename)
+					if (entries[i].filename.endsWith('Chunks32h.dat')) {
 						// Convert to ArrayBuffer
+						console.log('Getting zip entry data');
 						entries[i].getData(new zip.BlobWriter, function(blob) {
-							let fileReader = new FileReader()
+							console.log('Creating FileReader');
+							let fileReader = new FileReader();
+							console.log('Reading blob as ArrayBuffer');
 							fileReader.readAsArrayBuffer(blob);
 							fileReader.onload = function(event) {
 								// Initialize Kaitai struct object
-								let arrayBuffer = fileReader.result;
+								console.log('Creating ArrayBuffer');
+								let arrayBuffer: any = fileReader.result;
+								console.log('ArrayBuffer created');
+								console.log(['array buffer size', arrayBuffer.byteLength])
 								Imported.chunks = new Chunks32h(new KaitaiStream(arrayBuffer));
 								loadChunks();
 							}
@@ -225,8 +270,8 @@ function loadWorld() {
 $(document).ready(function() {
 	$('body').keydown(function(event) {
 		if (!Events.keys[event.key]) {
+			let n = 1;
 			Events.intervals[event.key] = window.setInterval(function() {
-				let n = 0.5;
 				switch (event.key) {
 					case 'w':
 						Three.camera.translateZ(-n);
@@ -245,8 +290,14 @@ $(document).ready(function() {
 						break;
 					case 'e':
 						Three.camera.translateY(n);
+						break;
 				}
-			}, 50);
+				Three.pointLight.position.set(
+					Three.camera.position.x,
+					Three.camera.position.y,
+					Three.camera.position.z,
+				);
+			}, 1000/60);
 			Events.keys[event.key] = true;
 			Events.keyCount += 1;
 		}
