@@ -18,12 +18,12 @@
 	</head>
 
 
-	<body>
+	<body style="background: #bbddff;">
 
 
 		<!-- World upload modal -->
 		{% call modal(id='upload-modal', title='Import world', buttons=[
-			('Start Editing', 'btn-primary', 'loadWorld();'),
+			('Start Editing', 'btn-primary', 'loadWorld();', 'import-world-btn'),
 		], close_button=False) %}
 			<p>Upload a .scworld file:</p>
 			<input type="file", id="scworld-input" />
@@ -42,16 +42,18 @@
 		<canvas id="world-canvas" />
 
 
-		<script src="{{ url_for('static', filename='zipjs/zip.js') }}"></script>
+		{#<script src="{{ url_for('static', filename='zipjs/zip.js') }}"></script>#}
 		<script>
-			zip.workerScriptsPath = '{{ url_for("static", filename="zipjs/") }}';
+			//zip.workerScriptsPath = '{{ url_for("static", filename="zipjs/") }}';
+			var ZIP_WORKER_SCRIPTS_PATH = '{{ url_for("static", filename="zipjs/") }}';
 		</script>
-		<script src="{{ url_for('static', filename='KaitaiStream.js') }}"></script>
+		{#<script src="{{ url_for('static', filename='KaitaiStream.js') }}"></script>
 		<script src="{{ url_for('static', filename='Chunks32h.js') }}"></script>
 		<script src="https://mrdoob.github.io/stats.js/build/stats.min.js"></script>
 		{% assets 'script' %}
 			<script src="{{ ASSET_URL }}"></script>
-		{% endassets %}
+		{% endassets %}#}
+		<script src="{{ url_for('static', filename='bundle.js') }}"></script>
 
 
 	</body>

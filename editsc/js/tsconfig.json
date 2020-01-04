@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "module": "commonjs",
+    "target": "es5",
+    "allowJs": true,
+    "types": ["node", "three", "zip.js", "stats.js"],
+    "outDir": "../static/",
+  },
+  "exclude": [
+  	"node_modules",
+  ],
+}

@@ -130,3 +130,7 @@ dmypy.json
 
 # webassets
 static/gen/
+
+# JavaScript
+node_modules/
+bundle.js

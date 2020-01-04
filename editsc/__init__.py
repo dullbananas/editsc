@@ -45,9 +45,6 @@ def create_app(production, root='/'):
 	bootstrap = flask_assets.Bundle('custom.scss', filters='libsass,cssmin', output='gen/style.css')
 	assets.register('bootstrap', bootstrap)
 
-	script = flask_assets.Bundle('script.ts', filters='typescript', output='gen/script.js')
-	assets.register('script', script)
-
 
 	# Return the object
 	# -----------------

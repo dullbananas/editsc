@@ -4,7 +4,7 @@
 	- title: The title that will appear at the top of the modal.
 	- close_button: Whether or not to display the X button on the top right.
 	- buttons: Should be an array of tuples with the following format: [
-		(title, class, onclick),
+		(title, class, onclick, id),
 	]
 	where title is the content of the button, class is the class to put on the
 	class, and onlick will be set to the button's onclick attribute. example:
@@ -31,8 +31,8 @@
 					{{ caller() }}
 				</div>
 				<div class="modal-footer">
-					{% for (title, classname, onclick) in buttons %}
-						<button class="btn {{ classname }}" onclick="{{ onclick }}">
+					{% for (title, classname, onclick, id) in buttons %}
+						<button class="btn {{ classname }}" {#onclick="{{ onclick }}"#} id="{{ id }}">
 							{{ title }}
 						</button>
 					{% endfor %}

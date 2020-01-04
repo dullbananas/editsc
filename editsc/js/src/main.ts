@@ -1,10 +1,12 @@
 // Declare and set up libraries and other external stuff
 declare var $: any;
-declare var zip: any;
-declare var KaitaiStream: any;
-declare var Chunks32h: any;
-declare var THREE: any;
-declare var Stats: any;
+const zip = require('zip-js/WebContent/zip').zip;
+declare var ZIP_WORKER_SCRIPTS_PATH: string;
+zip.workerScriptsPath = ZIP_WORKER_SCRIPTS_PATH;
+const KaitaiStream: any = require('kaitai-struct/KaitaiStream');
+const Chunks32h: any = require('./Chunks32h');
+const THREE = require('three');
+const Stats = require('stats.js');
 
 
 // Holds imported stuff
@@ -270,7 +272,7 @@ function loadWorld() {
 }
 
 
-// Set events
+// Set keyboard events
 $(document).ready(function() {
 	$('body').keydown(function(event) {
 		if (!Events.keys[event.key]) {
@@ -315,5 +317,13 @@ $(document).ready(function() {
 });
 
 
+// Set events for other stuff
+$('#import-world-btn').click(loadWorld);
+
+
 // Do stuff on load
 $('#upload-modal').modal('show');
+
+
+// Make this file a module
+export {};

@@ -1,3 +1,5 @@
 graft editsc/static
 graft editsc/templates
+graft editsc/js
+prune editsc/js/node_modules
 global-exclude *.pyc
