@@ -1,3 +1,6 @@
+# -------------------------------------------------------------------------------
+# PYTHON
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -129,8 +132,18 @@ dmypy.json
 .pyre/
 
 # webassets
-static/gen/
+static/gen/*
 
-# JavaScript
+
+# -------------------------------------------------------------------------------
+# JAVASCRIPT
+
 node_modules/
 bundle.js
+
+
+# -------------------------------------------------------------------------------
+# ELM
+
+elm-stuff
+repl-temp-*

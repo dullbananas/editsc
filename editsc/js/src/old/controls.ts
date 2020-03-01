@@ -41,6 +41,11 @@ export function handleKeyDown(event) {
 				rendering.Objects.camera.position.y,
 				rendering.Objects.camera.position.z,
 			);
+			console.log([
+				rendering.Objects.camera.position.x,
+				rendering.Objects.camera.position.y,
+				rendering.Objects.camera.position.z,
+			]);
 		}, 1000/60);
 		KeysState.keys[event.key] = true;
 		KeysState.keyCount += 1;

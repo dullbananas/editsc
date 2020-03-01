@@ -1,6 +1,6 @@
 // Decorator that caches function result
 // Copied from https://dev.to/carlillo/understanding-javascripttypescript-memoization-o7k
-export function memoize(fn) {
+/*export function memoize(fn) {
 	const cache = {};
 	return function(...args) {
 		const strArgs = JSON.stringify(args);
@@ -12,7 +12,7 @@ export function memoize(fn) {
 		);
 		return result;
 	}
-}
+}*/
 
 
 // Maps x y and z values to block indexes in a multidimensional array
@@ -30,7 +30,16 @@ for (var x = 0; x < 16; x++) {
 
 
 // Gets type of block
-function _bType(data: number) {
+/*function _bType(data: number) {
 	return 0b1111111111 & data;
+}*/
+
+
+// Functions for getting properties of blocks
+export function bitGetter(lowest: number, highest: number) {
+	return function(value) {
+		const mask = ((2 ** (highest - lowest + 1)) - 1) << lowest;
+		return (value & mask) >> lowest;
+	};
 }
-export const bType = memoize(_bType);
+export const bType = bitGetter(0, 9);

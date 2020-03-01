@@ -3,7 +3,7 @@
 
 declare var $: any;
 const THREE = require('three');
-const Stats = require('stats.js');
+//const Stats = require('stats.js');
 import * as controls from './controls';
 import * as globals from './globals';
 import * as utils from './utils';
@@ -27,6 +27,7 @@ const blockMaterial = new THREE.MeshLambertMaterial({color: 0x00ff00});
 
 // Renders a single frame
 export function renderFrame() {
+	console.log('frame rendered');
 	Objects.pointLight.position.set(
 		Objects.camera.position.x,
 		Objects.camera.position.y,
@@ -39,7 +40,7 @@ export function renderFrame() {
 // Initializes the renderer, scene, etc.
 export function initialize() {
 	// Configuration
-	THREE.Object3D.DefaultMatrixAutoUpdate = false;
+	//THREE.Object3D.DefaultMatrixAutoUpdate = false;
 	// Scene
 	Objects.scene = new THREE.Scene();
 	Objects.scene.background = new THREE.Color(0x0000ff);
@@ -59,19 +60,19 @@ export function initialize() {
 	Objects.renderer = new THREE.WebGLRenderer({
 		antialias: false,
 		canvas: $('#world-canvas')[0],
-		stencil: false,
+		//stencil: false,
 	});
 	Objects.renderer.setSize(window.innerWidth, window.innerHeight);
 	$('body').append(Objects.renderer.domElement);
 	// FPS counter
-	Objects.stats = new Stats();
+	/*Objects.stats = new Stats();
 	Objects.stats.setMode(0);
 	$(Objects.stats.domElement).css({
 		'position': 'absolute',
 		'bottom': '0',
 		'left': '0',
 	});
-	$('body').append(Objects.stats.domElement);
+	$('body').append(Objects.stats.domElement);*/
 	// Rendering loop
 	function renderLoop() {
 		if (controls.KeysState.keyCount > 0) {
@@ -94,6 +95,15 @@ export function renderChunk(chunkIndex) {
 	let chunk: any = globals.World.chunksFile.chunks[chunkIndex];
 	let xOffset = chunk.header.xPosition * 16;
 	let zOffset = chunk.header.zPosition * 16;
+	let obj = new THREE.Mesh(geometry, material);
+	obj.position.x = xOffset;
+	obj.position.y = 80;
+	obj.position.z = zOffset;
+	console.log(['chunk thing', obj.position]);
+	obj.updateMatrix();
+	Objects.scene.add(obj);
+	obj.updateMatrix();
+	//return null;
 	for (var x = 0; x < 16; x++) {
 		for (var y = 0; y < 256; y++) {
 			for (var z = 0; z < 16; z++) {
@@ -130,7 +140,7 @@ export function renderChunk(chunkIndex) {
 					let cube = new THREE.Mesh(geometry, material);
 					cube.position.x = x + xOffset;
 					cube.position.y = y;
-					cube.position.z = z + zOffset;
+					cube.position.z = (15 - z) + zOffset;
 					cube.updateMatrix();
 					Objects.scene.add(cube);
 				}

@@ -4,7 +4,7 @@
     "module": "commonjs",
     "target": "es5",
     "allowJs": true,
-    "types": ["node", "three", "zip.js", "stats.js"],
+    "types": ["node", "three", "zip.js"],
     "outDir": "../static/",
   },
   "exclude": [

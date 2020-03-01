@@ -22,7 +22,7 @@
 
 
 		<!-- World upload modal -->
-		{% call modal(id='upload-modal', title='Import world', buttons=[
+		{#{% call modal(id='upload-modal', title='Import world', buttons=[
 			('Start Editing', 'btn-primary', 'loadWorld();', 'import-world-btn'),
 		], close_button=False) %}
 			<p>Upload a .scworld file:</p>
@@ -35,11 +35,17 @@
 			<p id="upload-general-error" class="text-danger upload-error" style="display:none;">
 				An error occured.
 			</p>
-		{% endcall %}
+		{% endcall %}#}
 
 
 		<!-- The canvas where the world will be rendered -->
-		<canvas id="world-canvas" />
+		<canvas id="world-canvas"></canvas>
+
+
+		<!-- Contains UI -->
+		<div id="ui-wrapper">
+			<div id="ui"></div>
+		</div>
 
 
 		{#<script src="{{ url_for('static', filename='zipjs/zip.js') }}"></script>#}
@@ -54,9 +60,5 @@
 			<script src="{{ ASSET_URL }}"></script>
 		{% endassets %}#}
 		<script src="{{ url_for('static', filename='bundle.js') }}"></script>
-		<div id="info-box" style="background:white;width:100px;height:100px;position:absolute;bottom:0;right:0;z-index:999999999999;">
-		</div>
-
-
 	</body>
 </html>
