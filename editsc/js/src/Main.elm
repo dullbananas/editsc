@@ -7,6 +7,8 @@ import Html.Events as E
 import Browser
 import Json.Encode as JE
 
+import World exposing (World)
+
 
 
 main =
@@ -21,6 +23,7 @@ main =
 
 type alias Model =
     { dialog: Maybe Dialog
+    , world: Maybe World
     }
 
 init : () -> (Model, Cmd Msg)
@@ -29,31 +32,42 @@ init _ =
 
 initialModel : Model
 initialModel =
-    { dialog = Just <| Standard <| importDialogContent Nothing
+    { dialog = Just <| importDialog Nothing
+    , world = Nothing
     }
 
-importDialogContent : Maybe WorldImportStatus -> List (H.Html Msg)
-importDialogContent status =
+{-
+If you are one of the people who took the time to go to this GitHub repository
+and look through this code, you are an amazing person. I promise that I will
+never give you up, never let you down, and never run around and desert you.
+-}
+
+importDialog : Maybe WorldImportStatus -> Dialog
+importDialog status =
     let
-        top =
+        statusText =
+            case status of
+                Nothing ->
+                    ""
+                Just Loading ->
+                    "Loading world..."
+                Just ( Error text ) ->
+                    "Error: " ++ text
+    in
+        Dialog "Import world"
             [ H.p [] [ H.text "Import a .scworld file:" ]
             , H.input [ A.type_ "file", A.id "scworld-input" ] []
             , H.br [] []
             , H.button [ E.onClick ImportWorld ] [ H.text "Import World" ]
+            , H.p [] [ H.text statusText ]
             ]
-    in
-        case status of
-            Nothing ->
-                top
-            Just Loading ->
-                top ++ [ H.p [] [ H.text "Loading world..." ] ]
-            Just ( Error text ) ->
-                top ++ [ H.p [] [ H.text <| "Error: " ++ text ] ]
 
 
 
-type Dialog
-    = Standard ( List (H.Html Msg) )
+type alias Dialog =
+    { title : String
+    , content : List (H.Html Msg)
+    }
 
 
 type WorldImportStatus
@@ -78,9 +92,10 @@ update msg model =
                 CloseDialog ->
                     { model | dialog = Nothing }
                 ImportWorld ->
-                    { model | dialog = Just <| Standard <| importDialogContent <| Just Loading }
+                    -- if this was javascript then i would be crying as i type this
+                    { model | dialog = Just <| importDialog <| Just <| Loading }
                 WorldLoadError text ->
-                    { model | dialog = Just <| Standard <| importDialogContent <| Just <| Error text }
+                    { model | dialog = Just <| importDialog <| Just <| Error text }
 
         cmd =
             case msg of
@@ -107,20 +122,18 @@ view model =
 
 
 viewDialog : Maybe Dialog -> H.Html Msg
-viewDialog dialog =
-    case dialog of
-        Just ( Standard content ) ->
-            dialogWrapper content
+viewDialog maybeDialog =
+    case maybeDialog of
+        Just dialog ->
+            H.div [ A.class "dialog-wrapper" ]
+                [ H.div [ A.class "dialog" ]
+                    [ H.h1 [] [ H.text dialog.title ]
+                    , H.div [] dialog.content
+                    ]
+                ]
 
         Nothing ->
             H.text ""
-
-
-dialogWrapper : List ( H.Html Msg ) -> H.Html Msg
-dialogWrapper elements =
-    H.div [ A.class "dialog-wrapper" ]
-    [ H.div [ A.class "dialog" ] elements
-    ]
 
 
 

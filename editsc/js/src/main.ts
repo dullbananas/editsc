@@ -18,11 +18,14 @@ let app = Elm.Main.init({
 // Ports
 
 app.ports.loadWorld.subscribe(function(data) {
+	function handleErr(err: string) {
+		app.ports.worldLoadError.send(err);
+	}
 	try {
-		world = new World(document.getElementById('scworld-input'));
+		world = new World(document.getElementById('scworld-input'), handleErr);
 	}
 	catch (err) {
-		app.ports.worldLoadError.send(err.message);
+		handleErr(err.message);
 	}
 });
 
