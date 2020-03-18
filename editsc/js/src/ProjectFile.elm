@@ -1,12 +1,18 @@
 module ProjectFile exposing (ProjectFile, XMLItem(..), ProjectEntity, decodeValue, splitter, parseFile)
 
+{-| This module implements the `ProjectFile` type, which is a representation of
+the XML structure of the Project.xml file used by Survivalcraft. It also
+implements functions used for converting them to and from XML strings.
+-}
+
 import XmlParser exposing (Xml, Node(..))
 import Parser
 import Parser.Advanced
+import Result.Extra as ResultE
 
 import World exposing (GameMode(..), PlayerType(..))
 
-type alias DeadEnd =
+type alias XmlDeadEnd =
     Parser.Advanced.DeadEnd String Parser.Problem
 
 
@@ -18,8 +24,12 @@ type alias ProjectFile =
     }
 
 
-type XMLItem -- Represents either a Value or Values XML tag
-    = Values String (List XMLItem) -- name and list of xml items
+{-| The `XMLItem` type represents either a <Value> or <Values> XML tag in the
+Project.xml file.
+-}
+
+type XMLItem
+    = Values String (List XMLItem)
     | ValueBool String Bool
     | ValueInt String Int
     | ValueLong String Int
@@ -50,13 +60,13 @@ decodeValue name valueType value =
                 "False" -> Just (ValueBool name False)
                 _ -> Nothing
         "int" ->
-            useWrapper (\v -> ValueInt name v) (String.toInt value)
+            Maybe.map (\v -> ValueInt name v) (String.toInt value)
         "long" ->
-            useWrapper (\v -> ValueLong name v) (String.toInt value)
+            Maybe.map (\v -> ValueLong name v) (String.toInt value)
         "float" ->
-            useWrapper (\v -> ValueFloat name v) (String.toFloat value)
+            Maybe.map (\v -> ValueFloat name v) (String.toFloat value)
         "double" ->
-            useWrapper (\v -> ValueDouble name v) (String.toFloat value)
+            Maybe.map (\v -> ValueDouble name v) (String.toFloat value)
         "Point3" ->
             let wrapper list =
                   case list of
@@ -94,15 +104,6 @@ decodeValue name valueType value =
             Nothing
 
 
--- These are used by decodeValue:
-
-useWrapper : (a -> XMLItem) -> Maybe a -> Maybe XMLItem
-useWrapper wrapper maybeValue =
-    Maybe.map wrapper maybeValue
-    {-case maybeValue of
-        Just value -> Just (wrapper value)
-        Nothing -> Nothing-}
-
 splitter : (List a -> Maybe XMLItem) -> Int -> (String -> Maybe a) -> String -> Maybe XMLItem
 splitter wrapper length itemConverter wholeStr =
     wholeStr
@@ -113,22 +114,31 @@ splitter wrapper length itemConverter wholeStr =
         |> Maybe.andThen wrapper
 
 
+{-| This is the main function for parsing an XML file.
+-}
 parseFile : String -> Result String ProjectFile
 parseFile xmlString =
     xmlString
         |> XmlParser.parse
         |> Result.mapError deadEndsToString
         |> Result.map .root
+        -- These functions will collect information over time. Each one outpus a
+        -- record that contains one more field than the previous one.
         |> Result.andThen (getAttr0 "Guid")
         |> Result.andThen (getAttr1 "Version")
         |> Result.andThen getSubsystems
         |> Result.andThen getEntities
-        -- Now we have { node, attr0, attr1, subsystems, entities }
+        -- Result will now has errors of type List String instead of String
         |> Result.mapError List.singleton
+        -- Now we have { node, attr0, attr1, subsystems, entities }. The next
+        -- functions will change the types of some existing fields.
         |> Result.andThen decodeEntities
         |> Result.andThen decodeSubsystems
+        -- Now we have all data necessary to create a ProjectFile record. This
+        -- will pass the data into the ProjectFile constructor:
         |> Result.map (\a ->
             ProjectFile a.subsystems a.entities a.attr1 a.attr0)
+        -- Result's error type will now be String again
         |> Result.mapError combineErrorStrings
 
 
@@ -215,56 +225,39 @@ decodeXmlItem node =
 
 processDecodingResults : List (Result (List String) a) -> Result (List String) (List a)
 processDecodingResults resultList =
-    if List.any isErr resultList
-        then
-            resultList
-                |> List.filterMap getResultErr
-                |> List.concat
-                |> (\list -> Err list)
-        else
-            resultList
-                |> List.filterMap Result.toMaybe
-                |> (\list -> Ok list)
-
-
-isErr : Result a b -> Bool
-isErr result =
-    case result of
-        Err _ -> True
-        _ -> False
-
-
-getResultErr : Result (List err) b -> Maybe (List err)
-getResultErr result =
-    case result of
-        Err message -> Just message
-        _ -> Nothing
+    if List.any ResultE.isErr resultList then
+        resultList
+            |> List.filterMap ResultE.error
+            |> List.concat
+            |> Err
+    else
+        resultList
+            |> List.filterMap Result.toMaybe
+            |> Ok
 
 
 getSubsystems : Attrs2 {} -> Result String (Attrs2 { subsystems : List Node })
-getSubsystems { node, attr0, attr1 } =
-    case getChild "Subsystems" node of
-        Ok subsystems ->
-            case subsystems of
-                Element _ _ subsystemsNodes ->
-                    Ok { node = node, attr0 = attr0, attr1 = attr1
-                        , subsystems = subsystemsNodes }
-                _ ->
-                    Err "An error occured"
-        Err message ->
-            Err message
+getSubsystems =
+    getRootChild "Subsystems" (\a nodes ->
+        { node = a.node, attr0 = a.attr0, attr1 = a.attr1
+        , subsystems = nodes })
 
 
-getEntities :
-    Attrs2 { subsystems : List Node }
-    -> Result String (Attrs2 { subsystems : List Node, entities : List Node })
-getEntities { node, attr0, attr1, subsystems } =
-    case getChild "Entities" node of
-        Ok entities ->
-            case entities of
-                Element _ _ entitiesNodes ->
-                    Ok { node = node, attr0 = attr0, attr1 = attr1
-                        , subsystems = subsystems, entities = entitiesNodes }
+getEntities : Attrs2 { subsystems : List Node } -> Result String (Attrs2 { subsystems : List Node, entities : List Node })
+getEntities =
+    getRootChild "Entities" (\a nodes ->
+        { node = a.node, attr0 = a.attr0, attr1 = a.attr1
+        , subsystems = a.subsystems, entities = nodes })
+
+
+-- Used to get Subsystems or Entities nodes
+getRootChild : String -> ({ a | node : Node } -> List Node -> b) -> { a | node : Node } -> Result String b
+getRootChild childName wrapper attrs =
+    case getChild childName attrs.node of
+        Ok child ->
+            case child of
+                Element _ _ children ->
+                    Ok (wrapper attrs children)
                 _ ->
                     Err "An error occured"
         Err message ->
@@ -352,7 +345,7 @@ getElementAttr attrName node =
             Err "An error occured"
 
 
-deadEndsToString : List DeadEnd -> String
+deadEndsToString : List XmlDeadEnd -> String
 deadEndsToString deadEnds =
     let
         lines : List String
