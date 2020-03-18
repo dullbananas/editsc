@@ -1,11 +1,19 @@
-module ProjectFile exposing (ProjectFile, XMLItem(..), ProjectEntity, decodeValue, splitter, parseFile)
+module ProjectFile exposing
+    ( ProjectFile
+    , XMLItem(..)
+    , ProjectEntity
+    , decodeValue
+    , splitter
+    , parseFile
+    , toXmlString
+    )
 
 {-| This module implements the `ProjectFile` type, which is a representation of
 the XML structure of the Project.xml file used by Survivalcraft. It also
 implements functions used for converting them to and from XML strings.
 -}
 
-import XmlParser exposing (Xml, Node(..))
+import XmlParser exposing (Xml, Node(..), Attribute)
 import Parser
 import Parser.Advanced
 import Result.Extra as ResultE
@@ -140,6 +148,114 @@ parseFile xmlString =
             ProjectFile a.subsystems a.entities a.attr1 a.attr0)
         -- Result's error type will now be String again
         |> Result.mapError combineErrorStrings
+
+
+{-| This is the main function for converting a `ProjectFile` record into an XML
+string.
+-}
+toXmlString : ProjectFile -> String
+toXmlString projectFile =
+    let
+        subsystemsNodes : List Node
+        subsystemsNodes =
+            List.map xmlItemToNode projectFile.subsystems
+        entityNodes : List Node
+        entityNodes =
+            List.map entityToNode projectFile.entities
+        rootNodeAttrs : List Attribute
+        rootNodeAttrs =
+            [ Attribute "Guid" projectFile.guid
+            , Attribute "Name" "GameProject"
+            , Attribute "Version" projectFile.version
+            ]
+        rootNode : Node
+        rootNode =
+            Element "Project" rootNodeAttrs
+                [ Element "Subsystems" [] subsystemsNodes
+                , Element "Entities" [] entityNodes
+                ]
+    in
+        Xml [] Nothing rootNode
+            |> XmlParser.format
+
+
+entityToNode : ProjectEntity -> Node
+entityToNode { id, guid, name, content } =
+    Element
+        "Entity"
+        [ Attribute "Id" id
+        , Attribute "Guid" guid
+        , Attribute "Name" name
+        ]
+        (List.map xmlItemToNode content)
+
+
+xmlItemToNode : XMLItem -> Node
+xmlItemToNode xmlItem =
+    case xmlItem of
+        Values name children ->
+            Element
+                "Values"
+                [Attribute "Name" name]
+                (List.map xmlItemToNode children)
+        ValueBool name value ->
+            makeValueNode name "bool" (if value then "True" else "False")
+        ValueInt name value ->
+            makeValueNode name "int" (String.fromInt value)
+        ValueLong name value ->
+            makeValueNode name "long" (String.fromInt value)
+        ValueFloat name value ->
+            makeValueNode name "float" (String.fromFloat value)
+        ValueDouble name value ->
+            makeValueNode name "double" (String.fromFloat value)
+        ValuePoint3 name v0 v1 v2 ->
+            encodeMultiValues String.fromInt name "Point3" [v0, v1, v2]
+        ValueVector3 name v0 v1 v2 ->
+            encodeMultiValues String.fromFloat name "Vector3" [v0, v1, v2]
+        ValueQuaternion name v0 v1 v2 v3 ->
+            encodeMultiValues String.fromFloat name "Quaternion" [v0, v1, v2, v3]
+        ValueString name value ->
+            makeValueNode name "string" value
+        ValueGameMode name value ->
+            let
+                gameModeStr : String
+                gameModeStr =
+                    case value of
+                        Cruel -> "Cruel"
+                        Adventure -> "Adventure"
+                        Challenging -> "Challenging"
+                        Harmless -> "Harmless"
+                        Creative -> "Creative"
+            in
+                makeValueNode name "Game.GameMode" gameModeStr
+        ValuePlayerClass name value ->
+            let
+                playerClassStr : String
+                playerClassStr =
+                    case value of
+                        Male -> "Male"
+                        Female -> "Female"
+            in
+                makeValueNode name "Game.PlayerClass" playerClassStr
+
+
+makeValueNode : String -> String -> String -> Node
+makeValueNode name valueType value =
+    Element
+        "Value"
+        [ Attribute "Name" name
+        , Attribute "Type" valueType
+        , Attribute "Value" value
+        ]
+        []
+
+
+encodeMultiValues : (a -> String) -> String -> String -> List a -> Node
+encodeMultiValues converter name typeName values =
+    values
+        |> List.map converter
+        |> String.join ","
+        |> makeValueNode name typeName
 
 
 decodeSubsystems :

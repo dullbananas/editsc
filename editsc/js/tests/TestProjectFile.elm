@@ -7,7 +7,14 @@ import Test exposing (Test, test, describe)
 import Vector3 exposing (Vector3)
 import Vector4 exposing (Vector4)
 
-import ProjectFile exposing (XMLItem(..), ProjectEntity, ProjectFile, parseFile, decodeValue)
+import ProjectFile exposing
+    ( XMLItem(..)
+    , ProjectEntity
+    , ProjectFile
+    , parseFile
+    , toXmlString
+    , decodeValue
+    )
 import World exposing (GameMode(..), PlayerType(..))
 
 
@@ -160,7 +167,16 @@ suite =
         , describe "parseFile"
             [ test "converting a string to a ProjectFile" <|
                 \_ ->
-                    parseFile testStr0
+                    testStr0
+                        |> parseFile
+                        |> Expect.equal (Ok testOutput0)
+            ]
+        , describe "toXmlString"
+            [ test "converting a ProjectFile to a string then back to a ProjectFile" <|
+                \_ ->
+                    testOutput0
+                        |> toXmlString
+                        |> parseFile
                         |> Expect.equal (Ok testOutput0)
             ]
         ]
