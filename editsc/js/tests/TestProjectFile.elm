@@ -14,8 +14,9 @@ import ProjectFile exposing
     , parseFile
     , toXmlString
     , decodeValue
+    , queryXmlItem
     )
-import World exposing (GameMode(..), PlayerType(..))
+import GameTypes exposing (GameMode(..), PlayerType(..))
 
 
 testStr0 : String
@@ -23,6 +24,7 @@ testStr0 =
     """
     <Project Guid="AAAAAAAA" Name="GameProject" Version="2.2">
         <Subsystems>
+            <Value Name="HelloWorld" Type="string" Value="hello world"/>
             <Values Name="Subsystem0">
                 <Value Name="Bool" Type="bool" Value="True"/>
                 <Value Name="NumInt" Type="int" Value="7"/>
@@ -32,7 +34,7 @@ testStr0 =
                 <Value Name="NumsVector3" Type="Vector3" Value="-77.7,9.8,100"/>
                 <Value Name="NumsPoint3" Type="Point3" Value="-777,98,100"/>
                 <Value Name="NumsQuaternion" Type="Quaternion" Value="-77.7,9.8,100,1.23456789"/>
-                <Value Name="String" Type="string" Value="i &lt;3 ryl"/>
+                <Value Name="String" Type="string" Value="&lt;3 ryl"/>
                 <Value Name="GameMode" Type="Game.GameMode" Value="Creative"/>
                 <Value Name="GamePlayerClass" Type="Game.PlayerClass" Value="Male"/>
             </Values>
@@ -64,7 +66,8 @@ testOutput0 : ProjectFile
 testOutput0 =
     let
         subsystems =
-            [ Values "Subsystem0"
+            [ ValueString "HelloWorld" "hello world"
+            , Values "Subsystem0"
                 [ ValueBool "Bool" True
                 , ValueInt "NumInt" 7
                 , ValueDouble "NumDouble" 12345.123456789
@@ -73,7 +76,7 @@ testOutput0 =
                 , ValueVector3 "NumsVector3" -77.7 9.8 100.0
                 , ValuePoint3 "NumsPoint3" -777 98 100
                 , ValueQuaternion "NumsQuaternion" -77.7 9.8 100.0 1.23456789
-                , ValueString "String" "i <3 ryl"
+                , ValueString "String" "<3 ryl"
                 , ValueGameMode "GameMode" Creative
                 , ValuePlayerClass "GamePlayerClass" Male
                 ]
@@ -178,5 +181,27 @@ suite =
                         |> toXmlString
                         |> parseFile
                         |> Expect.equal (Ok testOutput0)
+            ]
+        , describe "queryXmlItem"
+            [ test "valid path with 1 name" <|
+                \_ ->
+                    testOutput0.subsystems
+                        |> queryXmlItem ["HelloWorld"]
+                        |> Expect.equal ( Just (ValueString "HelloWorld" "hello world") )
+            , test "valid path with 2 names" <|
+                \_ ->
+                    testOutput0.subsystems
+                        |> queryXmlItem ["Subsystem0", "NumInt"]
+                        |> Expect.equal ( Just (ValueInt "NumInt" 7 ) )
+            , test "valid path with 3 names" <|
+                \_ ->
+                    testOutput0.subsystems
+                        |> queryXmlItem ["Subsystem1", "SubValues", "Num2"]
+                        |> Expect.equal ( Just (ValueInt "Num2" 2 ) )
+            , test "invalid path with 3 names" <|
+                \_ ->
+                    testOutput0.subsystems
+                        |> queryXmlItem ["Subsystem1", "SubValues", "Num7"]
+                        |> Expect.equal Nothing
             ]
         ]

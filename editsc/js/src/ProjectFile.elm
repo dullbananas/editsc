@@ -6,6 +6,7 @@ module ProjectFile exposing
     , splitter
     , parseFile
     , toXmlString
+    , queryXmlItem
     )
 
 {-| This module implements the `ProjectFile` type, which is a representation of
@@ -17,8 +18,9 @@ import XmlParser exposing (Xml, Node(..), Attribute)
 import Parser
 import Parser.Advanced
 import Result.Extra as ResultE
+import Maybe.Extra as MaybeE
 
-import World exposing (GameMode(..), PlayerType(..))
+import GameTypes exposing (GameMode(..), PlayerType(..))
 
 type alias XmlDeadEnd =
     Parser.Advanced.DeadEnd String Parser.Problem
@@ -49,6 +51,46 @@ type XMLItem
     | ValueString String String
     | ValueGameMode String GameMode
     | ValuePlayerClass String PlayerType
+
+
+queryXmlItem : List String -> List XMLItem -> Maybe XMLItem
+queryXmlItem path xmlItems =
+    let
+        nameEquals : String -> XMLItem -> Bool
+        nameEquals name xmlItem =
+            name == (getXmlItemName xmlItem)
+    in
+        case path of
+            [name] ->
+                case List.filter (nameEquals name) xmlItems of
+                    [item] -> Just item
+                    _ -> Nothing
+            name :: names ->
+                ( case xmlItems |> List.filter (nameEquals name) of
+                    [Values _ items] ->items
+                    items -> items
+                )
+                    |> queryXmlItem names
+                    |> Just
+                    |> MaybeE.join
+            _ -> Nothing
+
+
+getXmlItemName : XMLItem -> String
+getXmlItemName xmlItem =
+    case xmlItem of
+        Values name _ -> name
+        ValueBool name _ -> name
+        ValueInt name _ -> name
+        ValueLong name _ -> name
+        ValueFloat name _ -> name
+        ValueDouble name _ -> name
+        ValuePoint3 name _ _ _ -> name
+        ValueVector3 name _ _ _ -> name
+        ValueQuaternion name _ _ _ _ -> name
+        ValueString name _ -> name
+        ValueGameMode name _ -> name
+        ValuePlayerClass name _ -> name
 
 
 type alias ProjectEntity =

@@ -1,9 +1,13 @@
-module World exposing (World, GameMode(..), PlayerType(..))
+module World exposing
+    ( World
+    )
 
 import Vector3 exposing (Vector3)
 import Vector4 exposing (Vector4)
 
 import Blocks exposing (BlockDataEntry)
+import GameTypes exposing (GameMode(..), PlayerType(..))
+import ProjectFile exposing (ProjectFile)
 
 
 
@@ -50,13 +54,6 @@ type alias WorldConfig =
 
 type GameVersion
     = GameVersion Int Int
-
-type GameMode
-    = Cruel
-    | Adventure
-    | Challenging
-    | Harmless
-    | Creative
 
 type TimeOfDayMode
     = Changing
@@ -147,11 +144,6 @@ type alias BodyClothing =
     , legs: String
     , feet: String
     }
-
-
-type PlayerType
-    = Male
-    | Female
 
 
 type AnimalType
