@@ -7,12 +7,8 @@ import Test exposing (Test, test, describe)
 import Vector3 exposing (Vector3)
 import Vector4 exposing (Vector4)
 
-import ProjectFile exposing
-    ( XMLItem(..)
-    , ProjectEntity
-    , ProjectFile
-    , parseFile
-    , toXmlString
+import XmlItem exposing
+    ( XmlItem(..)
     , decodeValue
     , queryXmlItem
     , queryBool
@@ -26,6 +22,12 @@ import ProjectFile exposing
     , queryString
     , queryGameMode
     , queryPlayerClass
+    )
+import ProjectFile exposing
+    ( toXmlString
+    , fromXmlString
+    , ProjectFile
+    , ProjectEntity
     )
 import GameTypes exposing (GameMode(..), PlayerType(..))
 
@@ -121,18 +123,7 @@ suite : Test
 suite =
     describe "The Parsing module"
         [ describe "decodeValue"
-            [ describe "Utility functions used by decodeValue"
-                [ test "splitter: 3 integers" <| \_ ->
-                    let
-                        wrapper list =
-                            case list of
-                                [a,b,c] -> Just (ValuePoint3 "name" a b c)
-                                _ -> Nothing
-                    in
-                        ProjectFile.splitter wrapper 3 String.toInt "-1,2,-31"
-                            |> Expect.equal ( Just (ValuePoint3 "name" -1 2 -31) )
-                ]
-            , test "Normal integers" <| \_ ->
+            [ test "Normal integers" <| \_ ->
                 decodeValue "ILLUSION" "int" "100"
                     |> Expect.equal ( Just (ValueInt "ILLUSION" 100) )
             , test "Long integers" <| \_ ->
@@ -166,17 +157,17 @@ suite =
                 decodeValue "IHaveFeelingsForA" "Game.PlayerClass" "Female"
                     |> Expect.equal ( Just (ValuePlayerClass "IHaveFeelingsForA" Female) )
             ]
-        , describe "parseFile"
+        , describe "fromXmlString"
             [ test "converting a string to a ProjectFile" <| \_ ->
                 testStr0
-                    |> parseFile
+                    |> fromXmlString
                     |> Expect.equal (Ok testOutput0)
             ]
         , describe "toXmlString"
             [ test "converting a ProjectFile to a string then back to a ProjectFile" <| \_ ->
                 testOutput0
                     |> toXmlString
-                    |> parseFile
+                    |> fromXmlString
                     |> Expect.equal (Ok testOutput0)
             ]
         , describe "queryXmlItem"
