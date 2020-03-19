@@ -15,6 +15,17 @@ import ProjectFile exposing
     , toXmlString
     , decodeValue
     , queryXmlItem
+    , queryBool
+    , queryInt
+    , queryLong
+    , queryFloat
+    , queryDouble
+    , queryPoint3
+    , queryVector3
+    , queryQuaternion
+    , queryString
+    , queryGameMode
+    , queryPlayerClass
     )
 import GameTypes exposing (GameMode(..), PlayerType(..))
 
@@ -111,97 +122,127 @@ suite =
     describe "The Parsing module"
         [ describe "decodeValue"
             [ describe "Utility functions used by decodeValue"
-                [ test "splitter: 3 integers" <|
-                    \_ ->
-                        let
-                            wrapper list =
-                                case list of
-                                    [a,b,c] -> Just (ValuePoint3 "name" a b c)
-                                    _ -> Nothing
-                        in
-                            ProjectFile.splitter wrapper 3 String.toInt "-1,2,-31"
-                                |> Expect.equal ( Just (ValuePoint3 "name" -1 2 -31) )
+                [ test "splitter: 3 integers" <| \_ ->
+                    let
+                        wrapper list =
+                            case list of
+                                [a,b,c] -> Just (ValuePoint3 "name" a b c)
+                                _ -> Nothing
+                    in
+                        ProjectFile.splitter wrapper 3 String.toInt "-1,2,-31"
+                            |> Expect.equal ( Just (ValuePoint3 "name" -1 2 -31) )
                 ]
-            , test "Normal integers" <|
-                \_ ->
-                    decodeValue "ILLUSION" "int" "100"
-                        |> Expect.equal ( Just (ValueInt "ILLUSION" 100) )
-            , test "Long integers" <|
-                \_ ->
-                    decodeValue "SPEECH" "long" "100"
-                        |> Expect.equal ( Just (ValueLong "SPEECH" 100) )
-            , test "Normal floats" <|
-                \_ ->
-                    decodeValue "Pi" "float" "3.14"
-                        |> Expect.equal ( Just (ValueFloat "Pi" 3.14) )
-            , test "Double floats" <|
-                \_ ->
-                    decodeValue "Pi" "double" "3.14159"
-                        |> Expect.equal ( Just (ValueDouble "Pi" 3.14159) )
-            , test "Boolean" <|
-                \_ ->
-                    decodeValue "BooleanValue" "bool" "True"
-                        |> Expect.equal ( Just (ValueBool "BooleanValue" True) )
-            , test "Point3" <|
-                \_ ->
-                    decodeValue "Point3Value" "Point3" "100,-3,90"
-                        |> Expect.equal ( Just (ValuePoint3 "Point3Value" 100 -3 90) )
-            , test "Vector3" <|
-                \_ ->
-                    decodeValue "Vector3Value" "Vector3" "10.9,8,-0.886"
-                        |> Expect.equal ( Just (ValueVector3 "Vector3Value" 10.9 8.0 -0.886) )
-            , test "Quaternion" <|
-                \_ ->
-                    decodeValue "QuaternionValue" "Quaternion" "100.1,-0.9253254,0,1000"
-                        |> Expect.equal ( Just (ValueQuaternion "QuaternionValue" 100.1 -0.9253254 0.0 1000.0) )
-            , test "String" <|
-                \_ ->
-                    decodeValue "ImGonnaSayTheNWord" "string" "null"
-                        |> Expect.equal ( Just (ValueString "ImGonnaSayTheNWord" "null") )
-            , test "Game mode" <|
-                \_ ->
-                    decodeValue "GameModeValue" "Game.GameMode" "Creative"
-                        |> Expect.equal ( Just (ValueGameMode "GameModeValue" Creative) )
-            , test "Player class" <|
-                \_ ->
-                    decodeValue "IHaveFeelingsForA" "Game.PlayerClass" "Female"
-                        |> Expect.equal ( Just (ValuePlayerClass "IHaveFeelingsForA" Female) )
+            , test "Normal integers" <| \_ ->
+                decodeValue "ILLUSION" "int" "100"
+                    |> Expect.equal ( Just (ValueInt "ILLUSION" 100) )
+            , test "Long integers" <| \_ ->
+                decodeValue "SPEECH" "long" "100"
+                    |> Expect.equal ( Just (ValueLong "SPEECH" 100) )
+            , test "Normal floats" <| \_ ->
+                decodeValue "Pi" "float" "3.14"
+                    |> Expect.equal ( Just (ValueFloat "Pi" 3.14) )
+            , test "Double floats" <| \_ ->
+                decodeValue "Pi" "double" "3.14159"
+                    |> Expect.equal ( Just (ValueDouble "Pi" 3.14159) )
+            , test "Boolean" <| \_ ->
+                decodeValue "BooleanValue" "bool" "True"
+                    |> Expect.equal ( Just (ValueBool "BooleanValue" True) )
+            , test "Point3" <| \_ ->
+                decodeValue "Point3Value" "Point3" "100,-3,90"
+                    |> Expect.equal ( Just (ValuePoint3 "Point3Value" 100 -3 90) )
+            , test "Vector3" <| \_ ->
+                decodeValue "Vector3Value" "Vector3" "10.9,8,-0.886"
+                    |> Expect.equal ( Just (ValueVector3 "Vector3Value" 10.9 8.0 -0.886) )
+            , test "Quaternion" <| \_ ->
+                decodeValue "QuaternionValue" "Quaternion" "100.1,-0.9253254,0,1000"
+                    |> Expect.equal ( Just (ValueQuaternion "QuaternionValue" 100.1 -0.9253254 0.0 1000.0) )
+            , test "String" <| \_ ->
+                decodeValue "ImGonnaSayTheNWord" "string" "null"
+                    |> Expect.equal ( Just (ValueString "ImGonnaSayTheNWord" "null") )
+            , test "Game mode" <| \_ ->
+                decodeValue "GameModeValue" "Game.GameMode" "Creative"
+                    |> Expect.equal ( Just (ValueGameMode "GameModeValue" Creative) )
+            , test "Player class" <| \_ ->
+                decodeValue "IHaveFeelingsForA" "Game.PlayerClass" "Female"
+                    |> Expect.equal ( Just (ValuePlayerClass "IHaveFeelingsForA" Female) )
             ]
         , describe "parseFile"
-            [ test "converting a string to a ProjectFile" <|
-                \_ ->
-                    testStr0
-                        |> parseFile
-                        |> Expect.equal (Ok testOutput0)
+            [ test "converting a string to a ProjectFile" <| \_ ->
+                testStr0
+                    |> parseFile
+                    |> Expect.equal (Ok testOutput0)
             ]
         , describe "toXmlString"
-            [ test "converting a ProjectFile to a string then back to a ProjectFile" <|
-                \_ ->
-                    testOutput0
-                        |> toXmlString
-                        |> parseFile
-                        |> Expect.equal (Ok testOutput0)
+            [ test "converting a ProjectFile to a string then back to a ProjectFile" <| \_ ->
+                testOutput0
+                    |> toXmlString
+                    |> parseFile
+                    |> Expect.equal (Ok testOutput0)
             ]
         , describe "queryXmlItem"
-            [ test "valid path with 1 name" <|
-                \_ ->
-                    testOutput0.subsystems
-                        |> queryXmlItem ["HelloWorld"]
-                        |> Expect.equal ( Just (ValueString "HelloWorld" "hello world") )
-            , test "valid path with 2 names" <|
-                \_ ->
-                    testOutput0.subsystems
-                        |> queryXmlItem ["Subsystem0", "NumInt"]
-                        |> Expect.equal ( Just (ValueInt "NumInt" 7 ) )
-            , test "valid path with 3 names" <|
-                \_ ->
-                    testOutput0.subsystems
-                        |> queryXmlItem ["Subsystem1", "SubValues", "Num2"]
-                        |> Expect.equal ( Just (ValueInt "Num2" 2 ) )
-            , test "invalid path with 3 names" <|
-                \_ ->
-                    testOutput0.subsystems
-                        |> queryXmlItem ["Subsystem1", "SubValues", "Num7"]
-                        |> Expect.equal Nothing
+            [ test "valid path with 1 name" <| \_ ->
+                testOutput0.subsystems
+                    |> queryXmlItem ["HelloWorld"]
+                    |> Expect.equal ( Just (ValueString "HelloWorld" "hello world") )
+            , test "valid path with 2 names" <| \_ ->
+                testOutput0.subsystems
+                    |> queryXmlItem ["Subsystem0", "NumInt"]
+                    |> Expect.equal ( Just (ValueInt "NumInt" 7 ) )
+            , test "valid path with 3 names" <| \_ ->
+                testOutput0.subsystems
+                    |> queryXmlItem ["Subsystem1", "SubValues", "Num2"]
+                    |> Expect.equal ( Just (ValueInt "Num2" 2 ) )
+            , test "invalid path with 3 names" <| \_ ->
+                testOutput0.subsystems
+                    |> queryXmlItem ["Subsystem1", "SubValues", "Num7"]
+                    |> Expect.equal Nothing
+            , test "invalid queryBool" <| \_ ->
+                testOutput0.subsystems
+                    |> queryBool ["MicrowaveBlockBehavior", "MMMMMMMM"]
+                    |> Expect.equal Nothing
+            , test "valid queryBool" <| \_ ->
+                testOutput0.subsystems
+                    |> queryBool ["Subsystem0", "Bool"]
+                    |> Expect.equal (Just True)
+            , test "valid queryInt" <| \_ ->
+                testOutput0.subsystems
+                    |> queryInt ["Subsystem0", "NumInt"]
+                    |> Expect.equal (Just 7)
+            , test "valid queryLong" <| \_ ->
+                testOutput0.subsystems
+                    |> queryLong ["Subsystem0", "NumLong"]
+                    |> Expect.equal (Just 123456789)
+            , test "valid queryFloat" <| \_ ->
+                testOutput0.subsystems
+                    |> queryFloat ["Subsystem0", "NumFloat"]
+                    |> Expect.equal (Just 12345.12345)
+            , test "valid queryDouble" <| \_ ->
+                testOutput0.subsystems
+                    |> queryDouble ["Subsystem0", "NumDouble"]
+                    |> Expect.equal (Just 12345.123456789)
+            , test "valid queryPoint3" <| \_ ->
+                testOutput0.subsystems
+                    |> queryPoint3 ["Subsystem0", "NumsPoint3"]
+                    |> Expect.equal ( Just (Vector3.from3 -777 98 100) )
+            , test "valid queryVector3" <| \_ ->
+                testOutput0.subsystems
+                    |> queryVector3 ["Subsystem0", "NumsVector3"]
+                    |> Expect.equal ( Just (Vector3.from3 -77.7 9.8 100) )
+            , test "valid queryQuaternion" <| \_ ->
+                testOutput0.subsystems
+                    |> queryQuaternion ["Subsystem0", "NumsQuaternion"]
+                    |> Expect.equal ( Just (Vector4.from4 -77.7 9.8 100 1.23456789) )
+            , test "valid queryString" <| \_ ->
+                testOutput0.subsystems
+                    |> queryString ["Subsystem0", "String"]
+                    |> Expect.equal ( Just "<3 ryl" )
+            , test "valid queryGameMode" <| \_ ->
+                testOutput0.subsystems
+                    |> queryGameMode ["Subsystem0", "GameMode"]
+                    |> Expect.equal ( Just Creative )
+            , test "valid queryPlayerClass" <| \_ ->
+                testOutput0.subsystems
+                    |> queryPlayerClass ["Subsystem0", "GamePlayerClass"]
+                    |> Expect.equal ( Just Male )
             ]
         ]

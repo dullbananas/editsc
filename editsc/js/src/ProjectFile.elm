@@ -7,6 +7,17 @@ module ProjectFile exposing
     , parseFile
     , toXmlString
     , queryXmlItem
+    , queryBool
+    , queryInt
+    , queryLong
+    , queryFloat
+    , queryDouble
+    , queryPoint3
+    , queryVector3
+    , queryQuaternion
+    , queryString
+    , queryGameMode
+    , queryPlayerClass
     )
 
 {-| This module implements the `ProjectFile` type, which is a representation of
@@ -19,6 +30,8 @@ import Parser
 import Parser.Advanced
 import Result.Extra as ResultE
 import Maybe.Extra as MaybeE
+import Vector3 exposing (Vector3)
+import Vector4 exposing (Vector4)
 
 import GameTypes exposing (GameMode(..), PlayerType(..))
 
@@ -51,6 +64,83 @@ type XMLItem
     | ValueString String String
     | ValueGameMode String GameMode
     | ValuePlayerClass String PlayerType
+
+
+queryBool : List String -> List XMLItem -> Maybe Bool
+queryBool path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueBool _ value) -> Just value
+        _ -> Nothing
+
+
+queryInt : List String -> List XMLItem -> Maybe Int
+queryInt path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueInt _ value) -> Just value
+        _ -> Nothing
+
+
+queryLong : List String -> List XMLItem -> Maybe Int
+queryLong path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueLong _ value) -> Just value
+        _ -> Nothing
+
+
+queryFloat : List String -> List XMLItem -> Maybe Float
+queryFloat path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueFloat _ value) -> Just value
+        _ -> Nothing
+
+
+queryDouble : List String -> List XMLItem -> Maybe Float
+queryDouble path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueDouble _ value) -> Just value
+        _ -> Nothing
+
+
+queryPoint3 : List String -> List XMLItem -> Maybe (Vector3 Int)
+queryPoint3 path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValuePoint3 _ a b c) -> Just (Vector3.from3 a b c)
+        _ -> Nothing
+
+
+queryVector3 : List String -> List XMLItem -> Maybe (Vector3 Float)
+queryVector3 path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueVector3 _ a b c) -> Just (Vector3.from3 a b c)
+        _ -> Nothing
+
+
+queryQuaternion : List String -> List XMLItem -> Maybe (Vector4 Float)
+queryQuaternion path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueQuaternion _ a b c d) -> Just (Vector4.from4 a b c d)
+        _ -> Nothing
+
+
+queryString : List String -> List XMLItem -> Maybe String
+queryString path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueString _ value) -> Just value
+        _ -> Nothing
+
+
+queryGameMode : List String -> List XMLItem -> Maybe GameMode
+queryGameMode path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueGameMode _ value) -> Just value
+        _ -> Nothing
+
+
+queryPlayerClass : List String -> List XMLItem -> Maybe PlayerType
+queryPlayerClass path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValuePlayerClass _ value) -> Just value
+        _ -> Nothing
 
 
 queryXmlItem : List String -> List XMLItem -> Maybe XMLItem
