@@ -7,7 +7,7 @@ import Test exposing (Test, test, describe)
 import Vector3 exposing (Vector3)
 import Vector4 exposing (Vector4)
 
-import XmlItem exposing
+import ProjectFile.XmlItem exposing
     ( XmlItem(..)
     , decodeValue
     , queryXmlItem
@@ -22,6 +22,7 @@ import XmlItem exposing
     , queryString
     , queryGameMode
     , queryPlayerClass
+    , queryStartingPositionMode
     )
 import ProjectFile exposing
     ( toXmlString
@@ -29,7 +30,11 @@ import ProjectFile exposing
     , ProjectFile
     , ProjectEntity
     )
-import GameTypes exposing (GameMode(..), PlayerType(..))
+import GameTypes exposing
+    ( GameMode(..)
+    , PlayerClass(..)
+    , StartingPositionMode(..)
+    )
 
 
 testStr0 : String
@@ -50,6 +55,7 @@ testStr0 =
                 <Value Name="String" Type="string" Value="&lt;3 ryl"/>
                 <Value Name="GameMode" Type="Game.GameMode" Value="Creative"/>
                 <Value Name="GamePlayerClass" Type="Game.PlayerClass" Value="Male"/>
+                <Value Name="GameStartingPositionMode" Type="Game.StartingPositionMode" Value="Easy"/>
             </Values>
             <Values Name="Subsystem1">
                 <Value Name="DullBananasHasAGirlfriend" Type="bool" Value="False"/>
@@ -92,6 +98,7 @@ testOutput0 =
                 , ValueString "String" "<3 ryl"
                 , ValueGameMode "GameMode" Creative
                 , ValuePlayerClass "GamePlayerClass" Male
+                , ValueStartingPositionMode "GameStartingPositionMode" Easy
                 ]
             , Values "Subsystem1"
                 [ ValueBool "DullBananasHasAGirlfriend" False
@@ -156,6 +163,9 @@ suite =
             , test "Player class" <| \_ ->
                 decodeValue "IHaveFeelingsForA" "Game.PlayerClass" "Female"
                     |> Expect.equal ( Just (ValuePlayerClass "IHaveFeelingsForA" Female) )
+            , test "Starting position mode" <| \_ ->
+                decodeValue "Mode" "Game.StartingPositionMode" "Easy"
+                    |> Expect.equal ( Just (ValueStartingPositionMode "Mode" Easy) )
             ]
         , describe "fromXmlString"
             [ test "converting a string to a ProjectFile" <| \_ ->
@@ -235,5 +245,9 @@ suite =
                 testOutput0.subsystems
                     |> queryPlayerClass ["Subsystem0", "GamePlayerClass"]
                     |> Expect.equal ( Just Male )
+            , test "valid queryStartingPositionMode" <| \_ ->
+                testOutput0.subsystems
+                    |> queryStartingPositionMode ["Subsystem0", "GameStartingPositionMode"]
+                    |> Expect.equal ( Just Easy )
             ]
         ]

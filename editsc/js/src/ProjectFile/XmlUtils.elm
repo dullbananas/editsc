@@ -1,4 +1,4 @@
-module XmlUtils exposing
+module ProjectFile.XmlUtils exposing
     ( getAttrs
     )
 

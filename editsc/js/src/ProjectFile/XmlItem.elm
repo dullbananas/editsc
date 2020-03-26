@@ -1,5 +1,6 @@
-module XmlItem exposing
+module ProjectFile.XmlItem exposing
     ( XmlItem(..)
+    , Query
     , queryBool
     , queryInt
     , queryLong
@@ -11,6 +12,13 @@ module XmlItem exposing
     , queryString
     , queryGameMode
     , queryPlayerClass
+    , queryStartingPositionMode
+    , queryTerrainGenMode
+    , queryFurnitureInteraction
+    , queryWidgetInputDevice
+    , queryTimeOfDayMode
+    , query
+    , queryList
     , toNode
     , fromNode
     -- Exported for use in unit tests:
@@ -26,8 +34,8 @@ import Maybe.Extra as MaybeE
 import Vector3 exposing (Vector3)
 import Vector4 exposing (Vector4)
 
-import GameTypes exposing (GameMode(..), PlayerType(..))
-import XmlUtils exposing (getAttrs)
+import GameTypes exposing (..)
+import ProjectFile.XmlUtils exposing (getAttrs)
 
 
 {-| The `XmlItem` type represents either a <Value> or <Values> XML tag in the
@@ -46,84 +54,126 @@ type XmlItem
     | ValueQuaternion String Float Float Float Float
     | ValueString String String
     | ValueGameMode String GameMode
-    | ValuePlayerClass String PlayerType
+    | ValuePlayerClass String PlayerClass
+    | ValueStartingPositionMode String StartingPositionMode
+    | ValueTerrainGenMode String TerrainGenerationMode
+    | ValueFurnitureInteraction String FurnitureInteraction
+    | ValueWidgetInputDevice String WidgetInputDevice
+    | ValueEnvironmentBehavior String EnvironmentBehavior
+    | ValueTimeOfDayMode String TimeOfDayMode
 
 
-queryBool : List String -> List XmlItem -> Maybe Bool
+type alias Query a =
+    List String -> List XmlItem -> Maybe a
+
+
+queryBool : Query Bool
 queryBool path xmlItems =
     case queryXmlItem path xmlItems of
         Just (ValueBool _ value) -> Just value
         _ -> Nothing
 
-
-queryInt : List String -> List XmlItem -> Maybe Int
+queryInt : Query Int
 queryInt path xmlItems =
     case queryXmlItem path xmlItems of
         Just (ValueInt _ value) -> Just value
         _ -> Nothing
 
-
-queryLong : List String -> List XmlItem -> Maybe Int
+queryLong : Query Int
 queryLong path xmlItems =
     case queryXmlItem path xmlItems of
         Just (ValueLong _ value) -> Just value
         _ -> Nothing
 
-
-queryFloat : List String -> List XmlItem -> Maybe Float
+queryFloat : Query Float
 queryFloat path xmlItems =
     case queryXmlItem path xmlItems of
         Just (ValueFloat _ value) -> Just value
         _ -> Nothing
 
-
-queryDouble : List String -> List XmlItem -> Maybe Float
+queryDouble : Query Float
 queryDouble path xmlItems =
     case queryXmlItem path xmlItems of
         Just (ValueDouble _ value) -> Just value
         _ -> Nothing
 
-
-queryPoint3 : List String -> List XmlItem -> Maybe (Vector3 Int)
+queryPoint3 : Query (Vector3 Int)
 queryPoint3 path xmlItems =
     case queryXmlItem path xmlItems of
         Just (ValuePoint3 _ a b c) -> Just (Vector3.from3 a b c)
         _ -> Nothing
 
-
-queryVector3 : List String -> List XmlItem -> Maybe (Vector3 Float)
+queryVector3 : Query (Vector3 Float)
 queryVector3 path xmlItems =
     case queryXmlItem path xmlItems of
         Just (ValueVector3 _ a b c) -> Just (Vector3.from3 a b c)
         _ -> Nothing
 
-
-queryQuaternion : List String -> List XmlItem -> Maybe (Vector4 Float)
+queryQuaternion : Query (Vector4 Float)
 queryQuaternion path xmlItems =
     case queryXmlItem path xmlItems of
         Just (ValueQuaternion _ a b c d) -> Just (Vector4.from4 a b c d)
         _ -> Nothing
 
-
-queryString : List String -> List XmlItem -> Maybe String
+queryString : Query String
 queryString path xmlItems =
     case queryXmlItem path xmlItems of
         Just (ValueString _ value) -> Just value
         _ -> Nothing
 
-
-queryGameMode : List String -> List XmlItem -> Maybe GameMode
+queryGameMode : Query GameMode
 queryGameMode path xmlItems =
     case queryXmlItem path xmlItems of
         Just (ValueGameMode _ value) -> Just value
         _ -> Nothing
 
-
-queryPlayerClass : List String -> List XmlItem -> Maybe PlayerType
+queryPlayerClass : Query PlayerClass
 queryPlayerClass path xmlItems =
     case queryXmlItem path xmlItems of
         Just (ValuePlayerClass _ value) -> Just value
         _ -> Nothing
+
+queryStartingPositionMode : Query StartingPositionMode
+queryStartingPositionMode path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueStartingPositionMode _ value) -> Just value
+        _ -> Nothing
+
+queryTerrainGenMode : Query TerrainGenerationMode
+queryTerrainGenMode path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueTerrainGenMode _ value) -> Just value
+        _ -> Nothing
+
+queryFurnitureInteraction : Query FurnitureInteraction
+queryFurnitureInteraction path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueFurnitureInterction _ value) -> Just value
+        _ -> Nothing
+
+queryWidgetInputDevice : Query WidgetInputDevide
+queryWidgetInputDevide path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueWidgetInputDevice _ value) -> Just value
+        _ -> Nothing
+
+queryTimeOfDayMode : Query TimeOfDayMode
+queryTimeOfDayMode path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueTimeOfDayMode _ value) -> Just value
+        _ -> Nothing
+
+
+queryList : (String -> Maybe a) -> String -> Query (List a)
+queryList converter separator path xmlItems =
+    case queryXmlItem path xmlItems of
+        Just (ValueString _ str) ->
+            str
+                |> String.split separator
+                |> List.map converter
+                |> MaybeE.combine
+        _ ->
+            Nothing
 
 
 queryXmlItem : List String -> List XmlItem -> Maybe XmlItem
@@ -193,6 +243,11 @@ getXmlItemName xmlItem =
         ValueString name _ -> name
         ValueGameMode name _ -> name
         ValuePlayerClass name _ -> name
+        ValueStartingPositionMode name _ -> name
+        ValueTerrainGenMode name _ -> name
+        ValueFurnitureInteraction name _ -> name
+        ValueWidgetInputDevice name _ -> name
+        ValueTimeOfDayMode name _ -> name
 
 
 decodeValue : String -> String -> String -> Maybe XmlItem
@@ -244,6 +299,43 @@ decodeValue name valueType value =
                 "Male" -> Just (ValuePlayerClass name Male)
                 "Female" -> Just (ValuePlayerClass name Female)
                 _ -> Nothing
+        "Game.StartingPositionMode" ->
+            case value of
+                "Easy" -> Just (ValueStartingPositionMode name Easy)
+                "Medium" -> Just (ValueStartingPositionMode name Medium)
+                "Hard" -> Just (ValueStartingPositionMode name Hard)
+                _ -> Nothing
+        "Game.TerrainGenerationMode" ->
+            case value of
+                "Continent" -> Just (ValueTerrainGenMode name Continent)
+                "Island" -> Just (ValueTerrainGenMode name Island)
+                "FlatContinent" -> Just (ValueTerrainGenMode name FlatContinent)
+                "FlatIsland" -> Just (ValueTerrainGenMode name FlatIsland)
+                _ -> Nothing
+        "Game.FurnitureInteractionMode" ->
+            case value of
+                "None" -> Just (ValueFurnitureInteraction name NotInteractive)
+                "Multistate" -> Just (ValueFurnitureInteraction name Multistate)
+                "ElectricSwitch" -> Just (ValueFurnitureInteraction name ElectricSwitch)
+                "ElectricButton" -> Just (ValueFurnitureInteraction name ElectricButton)
+                "ConnectedMultistate" -> Just (ValueFurnitureInteraction name ConnectedMultistate)
+                _ -> Nothing
+        "Game.WidgetInputDevice" ->
+            case value of
+                "None" -> Just (ValueWidgetInputDevice name NoInputDevice)
+                "GamePad1" -> Just (ValueWidgetInputDevice name Gamepad1)
+                "GamePad2" -> Just (ValueWidgetInputDevice name Gamepad2)
+                "GamePad3" -> Just (ValueWidgetInputDevice name Gamepad3)
+                "GamePad4" -> Just (ValueWidgetInputDevice name Gamepad4)
+                _ -> Nothing
+        "Game.TimeOfDayMode" ->
+            case value of
+                "Changing" -> Just (ValueTImeOfDayMode name Changing)
+                "Day" -> Just (ValueTImeOfDayMode name Day)
+                "Night" -> Just (ValueTImeOfDayMode name Night)
+                "Sunrise" -> Just (ValueTImeOfDayMode name Sunrise)
+                "Sunset" -> Just (ValueTImeOfDayMode name Sunset)
+                _ -> Nothing
         _ ->
             Nothing
 
@@ -286,8 +378,8 @@ toNode xmlItem =
             makeValueNode name "string" value
         ValueGameMode name value ->
             let
-                gameModeStr : String
-                gameModeStr =
+                str : String
+                str =
                     case value of
                         Cruel -> "Cruel"
                         Adventure -> "Adventure"
@@ -295,16 +387,73 @@ toNode xmlItem =
                         Harmless -> "Harmless"
                         Creative -> "Creative"
             in
-                makeValueNode name "Game.GameMode" gameModeStr
+                makeValueNode name "Game.GameMode" str
         ValuePlayerClass name value ->
             let
-                playerClassStr : String
-                playerClassStr =
+                str : String
+                str =
                     case value of
                         Male -> "Male"
                         Female -> "Female"
             in
-                makeValueNode name "Game.PlayerClass" playerClassStr
+                makeValueNode name "Game.PlayerClass" str
+        ValueStartingPositionMode name value ->
+            let
+                str : String
+                str =
+                    case value of
+                        Easy -> "Easy"
+                        Medium -> "Medium"
+                        Hard -> "Hard"
+            in
+                makeValueNode name "Game.StartingPositionMode" str
+        ValueTerrainGenMode name value ->
+            let
+                str : String
+                str =
+                    case value of
+                        Continent -> "Continent"
+                        Island -> "Island"
+                        FlatContinent -> "FlatContinent"
+                        FlatIsland -> "FlatIsland"
+            in
+                makeValueNode name "Game.TerrainGenerationMode" str
+        ValueFurnitureInteraction name value ->
+            let
+                str : String
+                str =
+                    case value of
+                        NotInteractive -> "None"
+                        Multistate -> "Multistate"
+                        ElectricSwitch -> "ElectricSwitch"
+                        ElectricButton -> "ElectricButton"
+                        ConnectedMultistate -> "ConnectedMultistate"
+            in
+                makeValueNode name "Game.FurnitureInteractionMode" str
+        ValueWidgetInputDevice name value ->
+            let
+                str : String
+                str =
+                    case value of
+                        NoInputDevice -> "None"
+                        Gamepad1 -> "GamePad1"
+                        Gamepad2 -> "GamePad2"
+                        Gamepad3 -> "GamePad3"
+                        Gamepad4 -> "GamePad4"
+            in
+                makeValueNode name "Game.WidgetInputDevice" str
+        ValueTimeOfDayMode name value ->
+            let
+                str : String
+                str =
+                    case value of
+                        Changing -> "Changing"
+                        Day -> "Day"
+                        Night -> "Night"
+                        Sunrise -> "Sunrise"
+                        Sunset -> "Sunset"
+            in
+                makeValueNode name "Game.TimeOfDayMode" str
 
 
 makeValueNode : String -> String -> String -> Node

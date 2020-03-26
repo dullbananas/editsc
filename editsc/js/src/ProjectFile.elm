@@ -5,13 +5,13 @@ module ProjectFile exposing
     , ProjectEntity
     )
 
-import XmlItem exposing (XmlItem)
+import ProjectFile.XmlItem as XmlItem exposing (XmlItem)
 import XmlParser exposing (Node(..), Attribute)
 import Parser
 import Parser.Advanced
 import Result.Extra as ResultE
 
-import XmlUtils exposing (getAttrs)
+import ProjectFile.XmlUtils as XmlUtils exposing (getAttrs)
 
 
 type alias ProjectFile =
