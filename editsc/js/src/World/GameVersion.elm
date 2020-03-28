@@ -1,8 +1,13 @@
-module World.GameVersion exposing (GameVersion, fromString, toString)
+module World.GameVersion exposing (GameVersion, fromString, toString, latest)
 
 
 type GameVersion
     = GameVersion Int Int
+
+
+latest : GameVersion
+latest =
+    GameVersion 2 2
 
 
 fromString : String -> Maybe GameVersion

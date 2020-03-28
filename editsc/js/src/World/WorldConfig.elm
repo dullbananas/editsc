@@ -3,23 +3,23 @@ module World.WorldConfig exposing
     , EnvironmentSettings
     , TerrainSettings
     , FlatTerrainSettings
-    , IslandTerrainSettings
-    , PaletteColor
+    , IslandSize
     , fromProjectFile
     )
 
 import Result.Extra as ResultE
 
 import ProjectFile exposing (ProjectFile)
-import ProjectFile.XmlItem as X exposing (XmlItem)
+import ProjectFile.XmlItem as X exposing (XmlItem, thenQuery, query)
 import GameTypes exposing
     ( GameMode(..)
     , StartingPositionMode(..)
     , EnvironmentBehavior(..)
     , TimeOfDayMode(..)
+    , PaletteColor
     )
 import World.BlockType exposing (BlockType)
-import World.Conversion exposing (ConversionError, andThen, thenQuery, endChain)
+import ConversionError exposing (ConversionError)
 
 
 type alias WorldConfig =
@@ -30,28 +30,26 @@ type alias WorldConfig =
     , startPositionMode : StartingPositionMode
     , textureFileName : String
     , elapsedTime : Float
-    , colorPalette : List PaletteColor
     , environment : EnvironmentSettings
     , terrain : TerrainSettings
+    --, colorPalette : List PaletteColor
     }
 
 
 fromProjectFile : ProjectFile -> Result ConversionError WorldConfig
 fromProjectFile {subsystems} =
-    Debug.todo "World config from project file"
-    {-Ok (WorldConfig, subsystems)
-        |> thenQuery X.queryString ["GameInfo", "WorldName"]
-        |> thenQuery X.queryGameMode ["GameInfo", "GameMode"]
-        |> thenQuery X.queryBool ["GameInfo", "IsAdventureRespawnAllowed"]
-        |> thenQuery X.queryBool ["GameInfo", "AreAdventureSurvivalMechanicsEnabled"]
-        |> thenQuery X.queryStartingPositionMode ["GameInfo", "StartingPositionMode"]
-        |> thenQuery X.queryString ["GameInfo", "BlockTextureName"]
-        |> thenQuery X.queryDouble ["GameInfo", "TotalElapsedGameTime"]
-        |> andThen colorPaletteFromSubsystems
-        |> andThen environmentSettingsFromSubsystems
-        |> andThen terrainSettingsFromSubsystems
-        |> endChain
--}
+    Ok WorldConfig
+        |> thenQuery X.string ["GameInfo", "WorldName"] subsystems
+        |> thenQuery X.gameMode ["GameInfo", "GameMode"] subsystems
+        |> thenQuery X.bool ["GameInfo", "IsAdventureRespawnAllowed"] subsystems
+        |> thenQuery X.bool ["GameInfo", "AreAdventureSurvivalMechanicsEnabled"] subsystems
+        |> thenQuery X.startingPositionMode ["GameInfo", "StartingPositionMode"] subsystems
+        |> thenQuery X.string ["GameInfo", "BlockTextureName"] subsystems
+        |> thenQuery X.double ["GameInfo", "TotalElapsedGameTime"] subsystems
+        |> ResultE.andMap (environmentSettingsFromSubsystems subsystems)
+        |> ResultE.andMap (terrainSettingsFromSubsystems subsystems)
+        --|> ResultE.andMap (colorPaletteFromSubsystems subsystems)
+
 
 type alias EnvironmentSettings =
     { behavior : EnvironmentBehavior
@@ -64,27 +62,37 @@ type alias EnvironmentSettings =
     }
 
 
-{-environmentSettingsFromSubsystems : List XmlItem -> Result ConversionError EnvironmentSettings
+environmentSettingsFromSubsystems : List XmlItem -> Result ConversionError EnvironmentSettings
 environmentSettingsFromSubsystems subsystems =
-    Ok (EnvironmentSettings, subsystems)
-        |> thenQuery X.queryEnvironmentBehavior ["GameInfo", "EnvironmentBehaviorMode"]
-        |> thenQuery X.queryBool ["GameInfo", "AreSupernaturalCreaturesEnabled"]
-        |> thenQuery X.queryBool ["GameInfo", "IsFriendlyFireEnabled"]
-        |> thenQuery X.queryFloat ["GameInfo", "TemperatureOffset"]
-        |> thenQuery X.queryFloat ["GameInfo", "HumidityOffset"]
-        |> thenQuery X.queryTimeOfDayMode ["GameInfo", "TimeOfDayMode"]
-        |> thenQuery X.queryBool ["GameInfo", "AreWeatherEffectsEnabled"]
-        |> endChain
--}
+    Ok EnvironmentSettings
+        |> thenQuery X.environmentBehavior ["GameInfo", "EnvironmentBehaviorMode"] subsystems
+        |> thenQuery X.bool ["GameInfo", "AreSupernaturalCreaturesEnabled"] subsystems
+        |> thenQuery X.bool ["GameInfo", "IsFriendlyFireEnabled"] subsystems
+        |> thenQuery X.float ["GameInfo", "TemperatureOffset"] subsystems
+        |> thenQuery X.float ["GameInfo", "HumidityOffset"] subsystems
+        |> thenQuery X.timeOfDayMode ["GameInfo", "TimeOfDayMode"] subsystems
+        |> thenQuery X.bool ["GameInfo", "AreWeatherEffectsEnabled"] subsystems
+
 
 type alias TerrainSettings =
     { seed : Int
     , seedString : String
-    , biomeScale : Float
+    , biomeSize : Float
     , seaLevel : Int
-    , flat : Maybe FlatTerrainSettings
-    , island : Maybe IslandTerrainSettings
+    , flat : FlatTerrainSettings
+    , islandSize : IslandSize
     }
+
+
+terrainSettingsFromSubsystems : List XmlItem -> Result ConversionError TerrainSettings
+terrainSettingsFromSubsystems subsystems =
+    Ok TerrainSettings
+        |> thenQuery X.int ["GameInfo", "WorldSeed"] subsystems
+        |> thenQuery X.string ["GameInfo", "WorldSeedString"] subsystems
+        |> thenQuery X.float ["GameInfo", "BiomeSize"] subsystems
+        |> thenQuery X.int ["GameInfo", "SeaLevelOffset"] subsystems
+        |> ResultE.andMap (flatTerrainSettingsFromSubsystems subsystems)
+        |> ResultE.andMap (islandSizeFromSubsystems subsystems)
 
 
 type alias FlatTerrainSettings =
@@ -95,16 +103,25 @@ type alias FlatTerrainSettings =
     }
 
 
-type alias IslandTerrainSettings =
-    { sizeNorthSouth : Int
-    , sizeEastWest : Int
+flatTerrainSettingsFromSubsystems : List XmlItem -> Result ConversionError FlatTerrainSettings
+flatTerrainSettingsFromSubsystems subsystems =
+    Ok FlatTerrainSettings
+        |> thenQuery X.int ["GameInfo", "TerrainLevel"] subsystems
+        |> thenQuery X.blockType ["GameInfo", "TerrainBlockIndex"] subsystems
+        |> thenQuery X.blockType ["GameInfo", "TerrainOceanBlockIndex"] subsystems
+        |> thenQuery X.float ["GameInfo", "ShoreRoughness"] subsystems
+
+
+type alias IslandSize =
+    { northSouth : Float
+    , eastWest : Float
     }
 
 
-type alias PaletteColor =
-    { index : Int
-    , name : String
-    , red : Int
-    , green : Int
-    , blue : Int
-    }
+islandSizeFromSubsystems : List XmlItem -> Result ConversionError IslandSize
+islandSizeFromSubsystems subsystems =
+    case (query X.vector2 ["GameInfo", "IslandSize"] subsystems) of
+        Ok vector ->
+            Ok <| IslandSize vector.x vector.y
+        Err error ->
+            Err error

@@ -5,62 +5,97 @@ import Fuzz exposing (Fuzzer, int, list, string)
 import Test exposing (Test, test, describe)
 
 import Result.Extra as ResultE
-import Vector3 exposing (Vector3)
 
-import ProjectFile.XmlItem as X exposing (XmlItem(..))
+import ProjectFile.XmlItem as X exposing (XmlItem(..), Value, Values)
+import ProjectFile exposing (ProjectFile)
 import World exposing (World)
-import World.Conversion exposing
-    ( ConversionError
-    , andThen
-    , thenQuery
-    , endChain
-    )
-
-
-xmlItemList0 : List XmlItem
-xmlItemList0 =
-    [ ValueString "AwesomeString" "i <3 ryl"
-    , ValueInt "AwesomeInt" 40
-    , Values "Stuff"
-        [ ValueString "SubString" "hi"
-        , ValueFloat "SubFloat" 123.456
-        ]
-    , ValueString "ListString" "one;two;three;"
-    --, ValueString "ListPoint3" "1,2,3;-4,-5,-6;"
-    ]
-
-
-type alias TestType0 =
-    { subString : String
-    , subFloat : Float
-    , awesomeString : String
-    , listString : List String
-    --, listPoint3 : List (Vec)
-    }
-
-
-testOut0 : TestType0
-testOut0 =
-    { subString = "hi"
-    , subFloat = 123.456
-    , awesomeString = "i <3 ryl"
-    , listString = ["one", "two", "three"]
-    --, listPoint3 =
-    --    [ Vector3.from3 1 2 3
-    --    , Vector3.from3 -4 -5 -6
-    --    ]
-    }
+import World.GameVersion as GameVersion
+import World.BlockType as BlockType exposing (BlockType)
+import GameTypes exposing (..)
 
 
 suite : Test
 suite =
-    describe "World.Conversion"
-        [ test "Valid query chain" <| \_ ->
-            Ok (TestType0, xmlItemList0)
-                |> thenQuery X.queryString ["Stuff", "SubString"]
-                |> thenQuery X.queryFloat ["Stuff", "SubFloat"]
-                |> thenQuery X.queryString ["AwesomeString"]
-                |> thenQuery X.queryList Just ";" ["ListString"]
-                |> endChain
-                |> Expect.equal ( Ok testOut0 )
+    describe "World"
+        [ test "From valid project file" <| \_ ->
+            projectFile
+                |> World.fromProjectFile
+                |> Expect.equal (Ok world)
         ]
+
+
+projectFile : ProjectFile
+projectFile =
+    ProjectFile
+        [ MultiValues <| Values "GameInfo"
+            [ OneValue <| Value "WorldName" "string" "Good World"
+            , OneValue <| Value "OriginalSetializationVersion" "string" "2.2"
+            , OneValue <| Value "GameMode" "Game.GameMode" "Creative"
+            , OneValue <| Value "EnvironmentBehaviorMode" "Game.EnvironmentBehaviorMode" "Living"
+            , OneValue <| Value "TimeOfDayMode" "Game.TimeOfDayMode" "Changing"
+            , OneValue <| Value "AreWeatherEffectsEnabled" "bool" "True"
+            , OneValue <| Value "IsAdventureRespawnAllowed" "bool" "True"
+            , OneValue <| Value "AreAdventureSurvivalMechanicsEnabled" "bool" "False"
+            , OneValue <| Value "AreSupernaturalCreaturesEnabled" "bool" "False"
+            , OneValue <| Value "IsFriendlyFireEnabled" "bool" "False"
+            , OneValue <| Value "WorldSeedString" "string" "ryl"
+            , OneValue <| Value "TerrainGenerationMode" "Game.TerrainGenerationMode" "Flat"
+            , OneValue <| Value "IslandSize" "Vector2" "400,400"
+            , OneValue <| Value "TerrainLevel" "int" "64"
+            , OneValue <| Value "ShoreRoughness" "float" "0.5"
+            , OneValue <| Value "TerrainBlockIndex" "int" "0"
+            , OneValue <| Value "TerrainOceanBlockIndex" "int" "0"
+            , OneValue <| Value "TemperatureOffset" "float" "0"
+            , OneValue <| Value "HumidityOffset" "float" "0"
+            , OneValue <| Value "SeaLevelOffset" "int" "0"
+            , OneValue <| Value "BiomeSize" "float" "1"
+            , OneValue <| Value "StartingPositionMode" "Game.StartingPositionMode" "Easy"
+            , OneValue <| Value "BlockTextureName" "string" ""
+            , MultiValues <| Values "Palette"
+                [ OneValue <| Value "Colors" "string" ";0,255,255;255,0,255;;;;;;;;;;;;;"
+                , OneValue <| Value "Names" "string" ";;;;;;;;;;;;;;;"
+                ]
+            , OneValue <| Value "WorldSeed" "int" "10116"
+            , OneValue <| Value "TotalElapsedGameTime" "double" "10"
+            ]
+        ]
+        []
+        "2.2"
+        "9e9a67f8-79df-4d05-8cfa-61bd8095661e"
+
+
+world : World
+world =
+    World
+        GameVersion.latest
+        "9e9a67f8-79df-4d05-8cfa-61bd8095661e"
+        { worldName = "Good World"
+        , gameMode = Creative
+        , adventureRespawnAllowed = True
+        , adventureSurvivalMechanics = False
+        , startPositionMode = Easy
+        , textureFileName = ""
+        , elapsedTime = 10.0
+        , environment =
+            { behavior = Living
+            , supernaturalCreatures = False
+            , friendlyFire = False
+            , tempOffset = 0.0
+            , humidityOffset = 0.0
+            , timeOfDay = Changing
+            , weatherEffects = True
+            }
+        , terrain =
+            { seed = 10116
+            , seedString = "ryl"
+            , biomeSize = 1.0
+            , seaLevel = 0
+            , flat =
+                { height = 64
+                , landBlock = BlockType.air
+                , oceanBlock = BlockType.air
+                , shoreRoughness = 0.5
+                }
+            , islandSize = { northSouth = 400.0, eastWest = 400.0 }
+            }
+        }

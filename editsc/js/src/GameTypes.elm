@@ -7,6 +7,9 @@ module GameTypes exposing
     , TerrainGenerationMode(..)
     , FurnitureInteraction(..)
     , WidgetInputDevice(..)
+    , Vector2
+    , Point3
+    , PaletteColor
     )
 
 {-| This module defines types that are used by both the `World` and `ProjectFile`
@@ -60,9 +63,32 @@ type FurnitureInteraction
     | ElectricButton
     | ConnectedMultistate
 
+
 type WidgetInputDevice
     = NoInputDevice
     | Gamepad1
     | Gamepad2
     | Gamepad3
     | Gamepad4
+
+
+type alias Vector2 =
+    { x : Float
+    , y : Float
+    }
+
+
+type alias Point3 =
+    { x : Int
+    , y : Int
+    , z : Int
+    }
+
+
+type alias PaletteColor =
+    { index : Int
+    , name : String
+    , red : Int
+    , green : Int
+    , blue : Int
+    }

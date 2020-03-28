@@ -32,7 +32,8 @@ type alias ProjectEntity =
 
 toXmlString : ProjectFile -> String
 toXmlString projectFile =
-    let
+    Debug.todo "toXmlString"
+    {-let
         subsystemsNodes : List Node
         subsystemsNodes =
             List.map XmlItem.toNode projectFile.subsystems
@@ -53,12 +54,13 @@ toXmlString projectFile =
                 ]
     in
         XmlParser.Xml [] Nothing rootNode
-            |> XmlParser.format
+            |> XmlParser.format-}
 
 
-fromXmlString : String -> Result ParseError ProjectFile
+--fromXmlString : String -> Result ParseError ProjectFile
 fromXmlString xmlStr =
-    xmlStr
+    Debug.todo "fromXmlString"
+    {-xmlStr
         |> XmlParser.parse
         |> Result.mapError XmlDeadEnds
         |> Result.map .root
@@ -68,7 +70,7 @@ fromXmlString xmlStr =
                     (processRootChild "Subsystems" XmlItem.fromNode rootNode)
                     (processRootChild "Entities" entityFromNode rootNode)
                     (getRootAttr "Version" rootNode)
-                    (getRootAttr "Guid" rootNode))
+                    (getRootAttr "Guid" rootNode))-}
 
 
 getRootAttr : String -> Node -> Result ParseError String
@@ -82,7 +84,7 @@ getRootAttr attrName rootNode =
             Err UnknownError
 
 
-processRootChild : String -> (Node -> Maybe (Result Node a)) -> Node -> Result ParseError (List a)
+--processRootChild : String -> (Node -> Maybe (Result Node a)) -> Node -> Result ParseError (List a)
 processRootChild childName childConverter rootNode =
     case getNodeChild childName rootNode of
         Ok (Element _ _ children) ->
@@ -114,9 +116,10 @@ nodeNameIs name node =
         _ -> False
 
 
-entityFromNode : Node -> Maybe (Result Node ProjectEntity)
+--entityFromNode : Node -> Maybe (Result Node ProjectEntity)
 entityFromNode node =
-    case node of
+    Debug.todo "entityFromNode"
+    {-case node of
         Element _ attrs children ->
             case getAttrs ["Id", "Guid", "Name"] attrs of
                 [id, guid, name] ->
@@ -128,18 +131,19 @@ entityFromNode node =
                 _ ->
                     Just (Err node)
         _ ->
-            Nothing
+            Nothing-}
 
 
 entityToNode : ProjectEntity -> Node
 entityToNode { id, guid, name, content } =
-    Element
+    Debug.todo "entityToNode"
+    {-Element
         "Entity"
         [ Attribute "Id" id
         , Attribute "Guid" guid
         , Attribute "Name" name
         ]
-        (List.map XmlItem.toNode content)
+        (List.map XmlItem.toNode content)-}
 
 
 type ParseError
