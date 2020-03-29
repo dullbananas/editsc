@@ -19,25 +19,6 @@
 
 
 	<body style="background: #bbddff;">
-
-
-		<!-- World upload modal -->
-		{#{% call modal(id='upload-modal', title='Import world', buttons=[
-			('Start Editing', 'btn-primary', 'loadWorld();', 'import-world-btn'),
-		], close_button=False) %}
-			<p>Upload a .scworld file:</p>
-			<input type="file", id="scworld-input" />
-			<!-- Errors -->
-			<p id="upload-count-error" class="text-danger upload-error" style="display:none;">
-				You need to upload exactly one file.
-			</p>
-			<p id="upload-extract-error" class="text-danger upload-error" style="display:none;"></p>
-			<p id="upload-general-error" class="text-danger upload-error" style="display:none;">
-				An error occured.
-			</p>
-		{% endcall %}#}
-
-
 		<!-- The canvas where the world will be rendered -->
 		<canvas id="world-canvas"></canvas>
 

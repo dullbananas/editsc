@@ -14,11 +14,9 @@ def create_app(production, root='/'):
 	)
 
 	# load config
-	if production:
-		cfg = ProductionConfig()
-	else:
-		cfg = DevelopmentConfig()
-	app.config.from_object(cfg)
+	app.config.from_object(
+		ProductionConfig() if production else DevelopmentConfig()
+	)
 	app.config['APPLICATION_ROOT'] = root
 
 	# Define URL routes
@@ -32,11 +30,9 @@ def create_app(production, root='/'):
 	from .editor import editor
 	app.register_blueprint(editor)
 
-
 	# Initialize extensions
 	# ---------------------
 	htmlmin = HTMLMIN(app)
-
 
 	# Initialize Flask-Assets
 	# -----------------------
@@ -44,7 +40,6 @@ def create_app(production, root='/'):
 
 	bootstrap = flask_assets.Bundle('custom.scss', filters='libsass,cssmin', output='gen/style.css')
 	assets.register('bootstrap', bootstrap)
-
 
 	# Return the object
 	# -----------------

@@ -4,10 +4,15 @@
     "module": "commonjs",
     "target": "es5",
     "allowJs": true,
-    "types": ["node", "three", "zip.js"],
+    "checkJs": false,
     "outDir": "../static/",
+    "incremental": true,
+    "listFiles": true,
+    "listEmittedFiles": true,
+    "types": ["node"],
   },
   "exclude": [
-  	"node_modules",
+    "node_modules",
+    "src/old",
   ],
 }
