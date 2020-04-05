@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "module": "commonjs",
     "target": "es5",
     "allowJs": true,
@@ -9,7 +9,7 @@
     "incremental": true,
     "listFiles": true,
     "listEmittedFiles": true,
-    "types": ["node"],
+    "strictNullChecks": true,
   },
   "exclude": [
     "node_modules",

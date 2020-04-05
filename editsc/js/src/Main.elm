@@ -1,14 +1,15 @@
-port module Main exposing (main)
+module Main exposing (main)
 
-
-import Html as H
-import Html.Attributes as A
-import Html.Events as E
+import Html exposing (Html)
 import Browser
-import Json.Encode as JE
 
 import World exposing (World)
+import Page.Importer as Importer
+import Page.Editor as Editor
 
+
+
+-- Main
 
 
 main =
@@ -21,122 +22,79 @@ main =
 
 
 
-type alias Model =
-    { dialog: Maybe Dialog
-    , world: Maybe World
-    }
+-- Model
 
-init : () -> (Model, Cmd Msg)
-init _ =
-    ( initialModel, Cmd.none )
 
-initialModel : Model
-initialModel =
-    { dialog = Just <| importDialog Nothing
-    , world = Nothing
-    }
-
-{-
-If you are one of the people who took the time to go to this GitHub repository
-and look through this code, you are an amazing person. I promise that I will
-never give you up, never let you down, and never run around and desert you.
--}
-
-importDialog : Maybe WorldImportStatus -> Dialog
-importDialog status =
-    let
-        statusText =
-            case status of
-                Nothing ->
-                    ""
-                Just Loading ->
-                    "Loading world..."
-                Just ( Error text ) ->
-                    "Error: " ++ text
-    in
-        Dialog "Import world"
-            [ H.p [] [ H.text "Import a .scworld file:" ]
-            , H.input [ A.type_ "file", A.id "scworld-input" ] []
-            , H.br [] []
-            , H.button [ E.onClick ImportWorld ] [ H.text "Import World" ]
-            , H.p [] [ H.text statusText ]
-            ]
+type Model
+    = Importer Importer.Model
+    | Editor Editor.Model
 
 
 
-type alias Dialog =
-    { title : String
-    , content : List (H.Html Msg)
-    }
-
-
-type WorldImportStatus
-    = Loading
-    | Error String
+-- Update
 
 
 type Msg
-    -- UI events triggered by the UI
-    = CloseDialog
-    | ImportWorld
-    -- Events triggered by JavaScript
-    | WorldLoadError String
-
+    = ImporterMsg Importer.Msg
+    | EditorMsg Editor.Msg
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
-    let
-        newModel =
-            case msg of
-                CloseDialog ->
-                    { model | dialog = Nothing }
-                ImportWorld ->
-                    -- if this was javascript then i would be crying as i type this
-                    { model | dialog = Just <| importDialog <| Just <| Loading }
-                WorldLoadError text ->
-                    { model | dialog = Just <| importDialog <| Just <| Error text }
+update message model =
+    case (message, model) of
+        ( ImporterMsg msg, Importer importer ) ->
+            let
+                ( newModel, cmd ) =
+                    Importer.update msg importer
+            in
+                case Importer.willSwitchToEditor <| newModel of
+                    Just world ->
+                        ( Editor <| Editor.init world, Cmd.none )
+                    Nothing ->
+                        ( Importer newModel, cmd )
 
-        cmd =
-            case msg of
-                ImportWorld ->
-                    loadWorld JE.null
-                _ ->
-                    Cmd.none
-    in
-        (newModel, cmd)
+        ( EditorMsg msg, Editor editor ) ->
+            Editor.update msg editor |> Tuple.mapFirst Editor
 
+        _ ->
+            ( model, Cmd.none )
+
+
+
+-- Subscriptions
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    worldLoadError WorldLoadError
+subscriptions model =
+    case model of
+        Importer importer ->
+            Importer.subscriptions importer |> Sub.map ImporterMsg
+
+        Editor editor ->
+            Editor.subscriptions editor |> Sub.map EditorMsg
 
 
+-- View
 
-view : Model -> H.Html Msg
+
+view : Model -> Html Msg
 view model =
-    H.div []
-        [ viewDialog model.dialog
-        ]
+    case model of
+        Importer importer ->
+            Importer.view importer |> Html.map ImporterMsg
 
-
-viewDialog : Maybe Dialog -> H.Html Msg
-viewDialog maybeDialog =
-    case maybeDialog of
-        Just dialog ->
-            H.div [ A.class "dialog-wrapper" ]
-                [ H.div [ A.class "dialog" ]
-                    [ H.h1 [] [ H.text dialog.title ]
-                    , H.div [] dialog.content
-                    ]
-                ]
-
-        Nothing ->
-            H.text ""
+        Editor editor ->
+            Editor.view editor |> Html.map EditorMsg
 
 
 
-port loadWorld : JE.Value -> Cmd msg
+-- Init
 
-port worldLoadError : (String -> msg) -> Sub msg
+
+init : () -> (Model, Cmd Msg)
+init _ =
+    Tuple.pair
+        ( Importer Importer.init )
+        Cmd.none
+
+

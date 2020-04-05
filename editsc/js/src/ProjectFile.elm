@@ -12,6 +12,7 @@ import Parser.Advanced
 import Result.Extra as ResultE
 
 import ProjectFile.XmlUtils as XmlUtils exposing (getAttrs)
+import ConversionError exposing (ConversionError(..))
 
 
 type alias ProjectFile =
@@ -57,12 +58,11 @@ toXmlString projectFile =
             |> XmlParser.format-}
 
 
---fromXmlString : String -> Result ParseError ProjectFile
+fromXmlString : String -> Result ConversionError ProjectFile
 fromXmlString xmlStr =
-    Debug.todo "fromXmlString"
-    {-xmlStr
+    xmlStr
         |> XmlParser.parse
-        |> Result.mapError XmlDeadEnds
+        |> Result.mapError ParseError
         |> Result.map .root
         |> Result.andThen (\rootNode ->
                 Result.map4
@@ -70,10 +70,10 @@ fromXmlString xmlStr =
                     (processRootChild "Subsystems" XmlItem.fromNode rootNode)
                     (processRootChild "Entities" entityFromNode rootNode)
                     (getRootAttr "Version" rootNode)
-                    (getRootAttr "Guid" rootNode))-}
+                    (getRootAttr "Guid" rootNode))
 
 
-getRootAttr : String -> Node -> Result ParseError String
+getRootAttr : String -> Node -> Result ConversionError String
 getRootAttr attrName rootNode =
     case rootNode of
         Element _ attrs _ ->
@@ -84,21 +84,21 @@ getRootAttr attrName rootNode =
             Err UnknownError
 
 
---processRootChild : String -> (Node -> Maybe (Result Node a)) -> Node -> Result ParseError (List a)
+processRootChild : String -> (Node -> Maybe (Result ConversionError a)) -> Node -> Result ConversionError (List a)
 processRootChild childName childConverter rootNode =
     case getNodeChild childName rootNode of
         Ok (Element _ _ children) ->
             children
                 |> List.filterMap childConverter
                 |> ResultE.combine
-                |> Result.mapError InvalidNode
+                --|> Result.mapError InvalidNode
         Err error ->
             Err error
         _ ->
             Err UnknownError
 
 
-getNodeChild : String -> Node -> Result ParseError Node
+getNodeChild : String -> Node -> Result ConversionError Node
 getNodeChild childName parent =
     case parent of
         Element _ _ children ->
@@ -116,10 +116,9 @@ nodeNameIs name node =
         _ -> False
 
 
---entityFromNode : Node -> Maybe (Result Node ProjectEntity)
+entityFromNode : Node -> Maybe (Result ConversionError ProjectEntity)
 entityFromNode node =
-    Debug.todo "entityFromNode"
-    {-case node of
+    case node of
         Element _ attrs children ->
             case getAttrs ["Id", "Guid", "Name"] attrs of
                 [id, guid, name] ->
@@ -129,9 +128,9 @@ entityFromNode node =
                         |> Result.map (ProjectEntity id guid name)
                         |> Just
                 _ ->
-                    Just (Err node)
+                    Just <| Err <| InvalidNode node
         _ ->
-            Nothing-}
+            Nothing
 
 
 entityToNode : ProjectEntity -> Node
@@ -144,11 +143,3 @@ entityToNode { id, guid, name, content } =
         , Attribute "Name" name
         ]
         (List.map XmlItem.toNode content)-}
-
-
-type ParseError
-    = XmlDeadEnds ( List (Parser.Advanced.DeadEnd String Parser.Problem) )
-    | NodeNotFound Node String -- Parent and name of missing child node
-    | InvalidNode Node
-    | MissingRootAttribute String
-    | UnknownError

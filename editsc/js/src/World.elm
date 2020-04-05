@@ -1,12 +1,11 @@
 module World exposing
     ( World
     , fromProjectFile
+    , fromXmlString
     )
 
-import Vector2 exposing (Vector2)
-import Vector3 exposing (Vector3)
-import Vector4 exposing (Vector4)
 import Result.Extra as ResultE
+import XmlParser
 
 import World.Blocks as Blocks exposing (BlockDataEntry)
 import World.BlockType exposing (BlockType)
@@ -34,3 +33,10 @@ fromProjectFile projectFile =
         |> ResultE.andMap (GameVersion.fromString projectFile.version |> Result.fromMaybe InvalidVersion)
         |> ResultE.andMap (Ok projectFile.guid)
         |> ResultE.andMap (WorldConfig.fromProjectFile projectFile)
+
+
+fromXmlString : String -> Result ConversionError World
+fromXmlString string =
+    string
+        |> ProjectFile.fromXmlString
+        |> Result.andThen fromProjectFile

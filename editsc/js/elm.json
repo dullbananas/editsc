@@ -14,7 +14,8 @@
             "elm/parser": "1.1.0",
             "elm-community/maybe-extra": "5.2.0",
             "elm-community/result-extra": "2.3.0",
-            "jinjor/elm-xml-parser": "2.0.0"
+            "jinjor/elm-xml-parser": "2.0.0",
+            "mdgriffith/elm-ui": "1.1.5"
         },
         "indirect": {
             "elm/time": "1.0.0",
