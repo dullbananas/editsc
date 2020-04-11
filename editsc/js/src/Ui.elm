@@ -4,11 +4,15 @@ module Ui exposing
     , fileInput
     , button
     , icon
-    , smallButton
     , panel
+    , textInput
 
     , HeadingLevel(..)
-    , SmallButton
+    , Button
+    , TextInput
+
+    , btn
+    , txt
 
     , light
     )
@@ -19,6 +23,7 @@ import Element.Font as Font
 import Element.Border as Border
 import Element.Events as Event
 import Element.Background as Background
+import Element.Input as Input
 import Html.Attributes as HtmlAttr
 import Html
 
@@ -66,25 +71,54 @@ fileInput idName =
         []
 
 
-button : String -> msg -> Element msg
-button label clickMsg =
-    el
-        [ fontFamily
-        , paddingXY 16 12
-        , Font.size 16
-        , Border.rounded 4
-        , outset
-        , Event.onClick clickMsg
-        ]
-        ( text label )
+button : Button -> msg -> Element msg
+button { iconName, label, active } clickMsg =
+    let
+        attrs =
+            [ fontFamily
+            , height <| px 48
+            , outset
+            , Font.size 24
+            , Border.rounded 24
+            , Event.onClick clickMsg
+            , Font.color <| if active then blue else gray
+            ]
+    in
+        case label of
+            "" ->
+                el
+                    ( attrs ++ [ width <| px 48 ] )
+                    ( el [ centerX, centerY ] <| icon iconName )
+
+            labelText ->
+                row
+                    (
+                        attrs ++
+                        [ paddingXY 16 0
+                        , spacing 16
+                        , Font.size 16
+                        ]
+                    )
+                    [ icon iconName, text labelText ]
+
+type alias Button =
+    { iconName : String
+    , label : String
+    , active : Bool
+    }
+
+btn : Button
+btn =
+    { iconName = "arrow-right"
+    , label = ""
+    , active = False
+    }
 
 
 icon : String -> Element msg
 icon iconName =
     el
-        [ centerX
-        , centerY
-        ]
+        []
 
         <| html <| Html.i
             [ HtmlAttr.class "fas"
@@ -93,41 +127,58 @@ icon iconName =
             []
 
 
-smallButton : SmallButton msg -> Element msg
-smallButton { iconName, onClick, active } =
-    el
-        [ width <| px 48
-        , height <| px 48
-        , outset
-        , Font.size 24
-        , Font.color ( if active then blue else gray )
-        , Border.rounded 24
-        , Event.onClick onClick
-        ]
-        ( icon iconName )
-
-
-type alias SmallButton msg =
-    { iconName : String
-    , onClick : msg
-    , active : Bool
-    }
-
-
-panel : List ( Attribute msg ) -> List ( SmallButton msg ) -> List ( Element msg ) -> Element msg
+panel : List ( Attribute msg ) -> List ( Element msg ) -> List ( Element msg ) -> Element msg
 panel attrs buttons content =
     column
-        (
-            [ fontFamily
-            , Background.color light
-            , Border.rounded 36
-            ]
-            ++ attrs
-        )
+        ( spacing 16 :: attrs ++ box )
 
-        [ row [ paddingXY 12 12, spacing 12 ] <| List.map smallButton buttons
-        , column [ paddingXY 16 16, spacing 16 ] <| content
+        [ tabButtonRow buttons
+        , column [ spacing 16 ] <| content
         ]
+
+
+tabButtonRow : List ( Element msg ) -> Element msg
+tabButtonRow =
+    row [ spacing 8 ]
+
+
+box : List ( Attribute msg )
+box =
+    [ fontFamily
+    , Background.color light
+    , Border.rounded 36
+    , paddingXY 12 12
+    ]
+
+
+textInput : TextInput -> ( String -> msg ) -> Element msg
+textInput { content, name } onChange =
+    Input.text
+        [ fontFamily
+        , Background.color maxWhite
+        , Border.rounded 24
+        , Border.width 0
+        ]
+        { onChange = onChange
+        , text = content
+        , placeholder = Just <|
+            Input.placeholder
+                [ alpha 0.5
+                ]
+                ( if content == "" then text name else none )
+        , label = Input.labelHidden name
+        }
+
+type alias TextInput =
+    { content : String
+    , name : String
+    }
+
+txt : TextInput
+txt =
+    { content = ""
+    , name = ""
+    }
 
 
 
@@ -142,6 +193,11 @@ light =
 white : Color
 white =
     rgb255 242 249 255
+
+
+maxWhite : Color
+maxWhite =
+    rgb255 255 255 255
 
 
 dimmedLight : Color -- Slightly darker verison of light; used for shadows
@@ -171,12 +227,34 @@ outset =
             , blur = 2
             , spread = 0
             , color = dimmedLight
+            , inset = False
             }
         ,
             { offset = ( -2, -2 )
             , blur = 2
             , spread = 0
             , color = white
+            , inset = False
+            }
+        ]
+
+
+inset : Attribute msg
+inset =
+    multiShadows
+        [
+            { offset = ( 2, 2 )
+            , blur = 2
+            , spread = 0
+            , color = dimmedLight
+            , inset = True
+            }
+        ,
+            { offset = ( -2, -2 )
+            , blur = 2
+            , spread = 0
+            , color = white
+            , inset = True
             }
         ]
 
@@ -217,7 +295,9 @@ multiShadows shadows =
 
         shadowStr : CssShadow -> String
         shadowStr shadow =
-            ( positionStr shadow ) ++ " " ++ ( colorStr <| toRgb shadow.color )
+            ( if shadow.inset then "inset " else "" )
+            ++ ( positionStr shadow ) ++ " "
+            ++ ( colorStr <| toRgb shadow.color )
 
         cssStr : String
         cssStr =
@@ -233,4 +313,5 @@ type alias CssShadow =
     , blur : Int
     , spread : Int
     , color : Color
+    , inset : Bool
     }

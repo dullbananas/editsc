@@ -1,16 +1,17 @@
-const zip = require('zip-js/WebContent/zip').zip;
+const JSZip = require('jszip');
 const Chunks32h = require('./Chunks32h');
 const KaitaiStream = require('kaitai-struct/KaitaiStream');
+const download = require('downloadjs');
 import {World} from './world';
 
-zip.workerScriptsPath = '/zipjs/';
+//zip.workerScriptsPath = '/zipjs/';
 
 
 
 // State
 
 
-let chunksFileEntry: zip.Entry | undefined = undefined;
+let chunksFileEntry: any | undefined = undefined;
 
 let world: World | undefined = undefined;
 
@@ -32,7 +33,7 @@ let app = Elm.Main.init({
 
 
 app.ports.extractZip.subscribe(function(): void {
-	function zipErr(err: string): void {
+	function zipErr(err: string) {
 		app.ports.extractionError.send(err);
 	}
 
@@ -41,17 +42,34 @@ app.ports.extractZip.subscribe(function(): void {
 	switch (fileInput.files!.length) {
 		case 1:
 			let file: File = fileInput.files![0];
-			let blobReader = new zip.BlobReader(file);
+
+			JSZip.loadAsync(file).then(function(zip: any/*: JSZip*/) {
+				const chunksObj = zip.file(/Chunks32h\.dat$/)[0];
+				const projectObj = zip.file(/Project\.xml$/)[0];
+				console.log([chunksObj,projectObj]);
+
+				if ( chunksObj && projectObj ) {
+					chunksFileEntry = chunksObj; // save chunks file for later
+
+					projectObj.async('string').then(function(content: String) {
+						app.ports.gotProjectFile.send(content);
+					});
+				}
+				else {
+					zipErr("The scworld file doesn't contain the right files. It might be in an unsupported Survivalcraft version.");
+				}
+			});
+			/*let blobReader = new zip.BlobReader(file);
 
 			zip.createReader(blobReader, function(reader: zip.ZipReader): void {
 				let projectEntry: zip.Entry | undefined = undefined;
 
 				reader.getEntries(function(entries: zip.Entry[]): void {
 					entries.forEach(function(entry: zip.Entry): void {
-						if (entry.filename.endsWith('Project.xml')) {
+						if (entry.filename.endsWith("Project.xml")) {
 							projectEntry = entry;
 						}
-						else if (entry.filename.endsWith('Chunks32h.dat')) {
+						else if (entry.filename.endsWith("Chunks32h.dat")) {
 							chunksFileEntry = entry;
 						}
 					});
@@ -62,14 +80,14 @@ app.ports.extractZip.subscribe(function(): void {
 						});
 					}
 					else {
-						zipErr('The scworld file doesn\'t contain the right files. The world might be in an unsupported Survivalcraft version.');
+						zipErr("The scworld file doesn't contain the right files. The world might be in an unsupported Survivalcraft version.");
 					}
 				});
-			}, zipErr);
+			}, zipErr);*/
 			break;
 
 		default:
-			zipErr('You must upload exactly one file.');
+			zipErr("You must upload exactly one file.");
 			break;
 	}
 });
@@ -77,7 +95,7 @@ app.ports.extractZip.subscribe(function(): void {
 
 app.ports.parseChunks.subscribe(function(): void {
 	if (chunksFileEntry) {
-		chunksFileEntry.getData(new zip.BlobWriter(), function(blob: Blob): void {
+		chunksFileEntry.async('blob').then(function(blob: Blob): void {
 			let fileReader = new FileReader();
 			fileReader.readAsArrayBuffer(blob);
 			fileReader.onload = function(event: Event) {
@@ -94,7 +112,7 @@ app.ports.parseChunks.subscribe(function(): void {
 
 				switch (typeof chunksStruct) {
 					case 'undefined':
-						app.ports.chunksError.send('Invalid data in chunks file; it might be corrupted');
+						app.ports.chunksError.send("Invalid data in chunks file; it might be corrupted");
 						break;
 
 					default:
@@ -104,6 +122,27 @@ app.ports.parseChunks.subscribe(function(): void {
 			};
 		});
 	}
+});
+
+
+app.ports.saveWorld.subscribe(function(arg: {fileName: string, xml: string}): void {
+	/*zip.createWriter(new zip.BlobWriter(), function(writer: any): void {
+		// Write Project.xml
+		writer.add('Project.xml', new zip.TextReader(arg.xml), function(): void {
+			// Download
+			writer.close(function(blob: Blob): void {
+				download(blob, arg.fileName, 'application/zip');
+			}); // So
+		}); // Many
+	}); // Stupid*/
+	let zip = new JSZip();
+	const rootDir: string = arg.fileName.split(".")[0] + "/";
+
+	zip.file(rootDir+"Project.xml", arg.xml);
+
+	zip.generateAsync({type:'blob'}).then(function(blob: Blob) {
+		download(blob, arg.fileName, "application/zip");
+	});
 });
 
 

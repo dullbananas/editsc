@@ -11,13 +11,7 @@ import Result.Extra as ResultE
 
 import ProjectFile exposing (ProjectFile)
 import ProjectFile.XmlItem as X exposing (XmlItem, thenQuery, query)
-import GameTypes exposing
-    ( GameMode(..)
-    , StartingPositionMode(..)
-    , EnvironmentBehavior(..)
-    , TimeOfDayMode(..)
-    , PaletteColor
-    )
+import GameTypes exposing (..)
 import World.BlockType exposing (BlockType)
 import ConversionError exposing (ConversionError)
 
@@ -79,6 +73,7 @@ type alias TerrainSettings =
     , seedString : String
     , biomeSize : Float
     , seaLevel : Int
+    , generationMode : TerrainGenerationMode
     , flat : FlatTerrainSettings
     , islandSize : IslandSize
     }
@@ -91,6 +86,7 @@ terrainSettingsFromSubsystems subsystems =
         |> thenQuery X.string ["GameInfo", "WorldSeedString"] subsystems
         |> thenQuery X.float ["GameInfo", "BiomeSize"] subsystems
         |> thenQuery X.int ["GameInfo", "SeaLevelOffset"] subsystems
+        |> thenQuery X.terrainGenerationMode ["GameInfo", "TerrainGenerationMode"] subsystems
         |> ResultE.andMap (flatTerrainSettingsFromSubsystems subsystems)
         |> ResultE.andMap (islandSizeFromSubsystems subsystems)
 

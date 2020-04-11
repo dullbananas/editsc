@@ -86,9 +86,7 @@ type alias Point3 =
 
 
 type alias PaletteColor =
-    { index : Int
-    , name : String
-    , red : Int
+    { red : Int
     , green : Int
     , blue : Int
     }

@@ -33,20 +33,22 @@ type alias ProjectEntity =
 
 toXmlString : ProjectFile -> String
 toXmlString projectFile =
-    Debug.todo "toXmlString"
-    {-let
+    let
         subsystemsNodes : List Node
         subsystemsNodes =
             List.map XmlItem.toNode projectFile.subsystems
+
         entityNodes : List Node
         entityNodes =
             List.map entityToNode projectFile.entities
+
         rootNodeAttrs : List Attribute
         rootNodeAttrs =
             [ Attribute "Guid" projectFile.guid
             , Attribute "Name" "GameProject"
             , Attribute "Version" projectFile.version
             ]
+
         rootNode : Node
         rootNode =
             Element "Project" rootNodeAttrs
@@ -55,7 +57,7 @@ toXmlString projectFile =
                 ]
     in
         XmlParser.Xml [] Nothing rootNode
-            |> XmlParser.format-}
+            |> XmlParser.format
 
 
 fromXmlString : String -> Result ConversionError ProjectFile
@@ -135,11 +137,10 @@ entityFromNode node =
 
 entityToNode : ProjectEntity -> Node
 entityToNode { id, guid, name, content } =
-    Debug.todo "entityToNode"
-    {-Element
+    Element
         "Entity"
         [ Attribute "Id" id
         , Attribute "Guid" guid
         , Attribute "Name" name
         ]
-        (List.map XmlItem.toNode content)-}
+        ( List.map XmlItem.toNode content )

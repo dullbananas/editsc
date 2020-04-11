@@ -127,7 +127,7 @@ body model =
         [ heading H1 "EditSC"
         , bodyText "Welcome to EditSC. Upload a .scworld file below to start editing."
         , fileInput "scworld-input"
-        , button "Import" StartImporting
+        , button { btn | iconName = "file-import", label = "Import" } StartImporting
         , viewStatus model
         ]
 

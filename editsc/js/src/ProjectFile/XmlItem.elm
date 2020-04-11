@@ -8,7 +8,9 @@ module ProjectFile.XmlItem exposing
     , queryItem
     , query
     , thenQuery
-    , makeXmlItem
+
+    , val
+    , vals
 
     , int
     , long
@@ -24,6 +26,7 @@ module ProjectFile.XmlItem exposing
     , environmentBehavior
     , timeOfDayMode
     , blockType
+    , terrainGenerationMode
     )
 
 import ProjectFile.XmlUtils exposing (getAttrs)
@@ -52,6 +55,20 @@ type alias Values =
     { name : String
     , children : List XmlItem
     }
+
+
+val : ValueType a -> String -> a -> XmlItem
+val valueType name value =
+    OneValue
+        { name = name
+        , typeName = valueType.name
+        , value = valueType.toString value
+        }
+
+
+vals : String -> List XmlItem -> XmlItem
+vals name children =
+    MultiValues <| Values name children
 
 
 type alias ValueType a =
@@ -157,11 +174,6 @@ nameEquals name xmlItem =
         MultiValues values -> values.name == name
 
 
-makeXmlItem : String -> ValueType a -> a -> XmlItem
-makeXmlItem name valueType value =
-    OneValue <| Value name valueType.name (valueType.toString value)
-
-
 int : ValueType Int
 int = ValueType
     "int" String.toInt String.fromInt
@@ -248,17 +260,26 @@ listFromString converter str =
         |> MaybeE.combine
 
 
+enumType : String -> List a -> ( a -> String ) -> ValueType a
+enumType name values toString =
+    { name = name
+    , fromString = \str ->
+        let
+            isRight value =
+                if toString value == str then Just value else Nothing
+        in
+            case values |> List.filterMap isRight of
+                [ value ] -> Just value
+                _ -> Nothing
+    , toString = toString
+    }
+
+
 gameMode : ValueType GameMode
-gameMode = ValueType
+gameMode = enumType
     "Game.GameMode"
-    ( \s -> case s of
-        "Cruel" -> Just Cruel
-        "Adventure" -> Just Adventure
-        "Challenging" -> Just Challenging
-        "Harmless" -> Just Harmless
-        "Creative" -> Just Creative
-        _ -> Nothing )
-    ( \g -> case g of
+    [ Cruel, Adventure, Challenging, Harmless, Creative ]
+    ( \value -> case value of
         Cruel -> "Cruel"
         Adventure -> "Adventure"
         Challenging -> "Challenging"
@@ -267,42 +288,29 @@ gameMode = ValueType
 
 
 startingPositionMode : ValueType StartingPositionMode
-startingPositionMode = ValueType
+startingPositionMode = enumType
     "Game.StartingPositionMode"
-    ( \s -> case s of
-        "Easy" -> Just Easy
-        "Medium" -> Just Medium
-        "Hard" -> Just Hard
-        _ -> Nothing )
-    ( \s -> case s of
+    [ Easy, Medium, Hard ]
+    ( \value -> case value of
         Easy -> "Easy"
         Medium -> "Medium"
         Hard -> "Hard" )
 
 
 environmentBehavior : ValueType EnvironmentBehavior
-environmentBehavior = ValueType
+environmentBehavior = enumType
     "Game.EnvironmentBehaviorMode"
-    ( \s -> case s of
-        "Living" -> Just Living
-        "Static" -> Just Static
-        _ -> Nothing )
-    ( \a -> case a of
+    [ Living, Static ]
+    ( \value -> case value of
         Living -> "Living"
         Static -> "Static" )
 
 
 timeOfDayMode : ValueType TimeOfDayMode
-timeOfDayMode = ValueType
+timeOfDayMode = enumType
     "Game.TimeOfDayMode"
-    ( \s -> case s of
-        "Changing" -> Just Changing
-        "Day" -> Just Day
-        "Night" -> Just Night
-        "Sunrise" -> Just Sunrise
-        "Sunset" -> Just Sunset
-        _ -> Nothing )
-    ( \t -> case t of
+    [ Changing, Day, Night, Sunrise, Sunset ]
+    ( \value -> case value of
         Changing -> "Changing"
         Day -> "Day"
         Night -> "Night"
@@ -315,3 +323,14 @@ blockType = ValueType
     "int"
     ( String.toInt >> Maybe.andThen BlockType.fromInt )
     ( BlockType.toInt >> String.fromInt )
+
+
+terrainGenerationMode : ValueType TerrainGenerationMode
+terrainGenerationMode = enumType
+    "Game.TerrainGenerationMode"
+    [ Continent, Island, FlatContinent, FlatIsland ]
+    ( \value -> case value of
+        Continent -> "Continent"
+        Island -> "Island"
+        FlatContinent -> "FlatContinent"
+        FlatIsland -> "FlatIsland" )

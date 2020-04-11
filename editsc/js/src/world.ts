@@ -48,3 +48,21 @@ export class SurfacePoint {
 		this.tempHumidity = struct.tempHumidity;
 	}
 }
+
+
+
+// Combines multiple Uint8Array objects to a single Uint8Array
+function combineArrays(arrays: Uint8Array[]): Uint8Array {
+	let totalLength = arrays.reduce(
+		(acc: number, value: Uint8Array) => acc + value.length, 0
+	);
+	let result: Uint8Array = new Uint8Array(totalLength);
+
+	let position = 0;
+	for (let array of arrays) {
+		result.set(array, position);
+		position += array.length;
+	}
+
+	return result;
+}

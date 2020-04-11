@@ -21,3 +21,10 @@ port chunksReady : ( () -> msg ) -> Sub msg
 port extractionError : ( String -> msg ) -> Sub msg
 
 port chunksError : ( String -> msg ) -> Sub msg
+
+
+
+-- World saver
+
+
+port saveWorld : { fileName : String, xml : String } -> Cmd msg
