@@ -1,4 +1,9 @@
-module World.GameVersion exposing (GameVersion, fromString, toString, latest)
+module World.GameVersion exposing
+    ( GameVersion
+    , fromString
+    , toString
+    , latest
+    )
 
 
 type GameVersion

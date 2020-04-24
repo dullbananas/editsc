@@ -12,6 +12,7 @@ import Page.Editor as Editor
 -- Main
 
 
+main : Program () Model Msg
 main =
     Browser.element
         { init = init

@@ -108,19 +108,47 @@ view model =
                 }
             ]
         }
-        [ explain Debug.todo ]
+        []
         ( body model )
 
 
 body : Model -> Element Msg
 body model =
-    row
+    column
         [ width fill
         , height fill
         , paddingXY 16 16
         ]
 
-        [ panel
+        [ case model.currentTab of
+            Collapsed ->
+                el
+                    (
+                    [ id "inspector"
+                    , alignBottom
+                    , width <| maximum 400 fill
+                    ] ++ box )
+
+                    ( tabButtonRow <| inspectorButtons model.currentTab )
+
+            _ ->
+                column
+                (
+                [ spacing 16
+                , alignBottom
+                , width <| maximum 400 fill
+                , id "inspector"
+                ] ++ box )
+
+                [ tabButtonRow <| inspectorButtons model.currentTab
+                , column
+                    [ spacing 16
+                    , height fill
+                    ]
+                    ( viewInspector model )
+                ]
+        ]
+        {-[ panel
             (
                 [ alignRight
                 , alignBottom
@@ -130,7 +158,7 @@ body model =
             )
             ( inspectorButtons model.currentTab )
             ( viewInspector model )
-        ]
+        ]-}
 
 
 viewInspector : Model -> List ( Element Msg )

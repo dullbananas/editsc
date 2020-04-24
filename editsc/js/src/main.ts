@@ -20,11 +20,17 @@ let world: World | undefined = undefined;
 // Initialize Elm
 
 
-var Elm = require('./Main.elm').Elm;
+var M = require('./Main.elm');
+var C = require('./Css.elm');
 
 
-let app = Elm.Main.init({
+let app = M.Elm.Main.init({
 	node: document.getElementById('ui'),
+});
+
+
+let cssApp = C.Elm.Css.init({
+	node: document.getElementById('style'),
 });
 
 
@@ -42,17 +48,23 @@ app.ports.extractZip.subscribe(function(): void {
 	switch (fileInput.files!.length) {
 		case 1:
 			let file: File = fileInput.files![0];
+			console.log(0);
 
 			JSZip.loadAsync(file).then(function(zip: any/*: JSZip*/) {
+				console.log(1);
 				const chunksObj = zip.file(/Chunks32h\.dat$/)[0];
+				console.log(2);
 				const projectObj = zip.file(/Project\.xml$/)[0];
 				console.log([chunksObj,projectObj]);
 
 				if ( chunksObj && projectObj ) {
 					chunksFileEntry = chunksObj; // save chunks file for later
+					console.log(3);
 
 					projectObj.async('string').then(function(content: String) {
+						console.log(3);
 						app.ports.gotProjectFile.send(content);
+						console.log(4);
 					});
 				}
 				else {

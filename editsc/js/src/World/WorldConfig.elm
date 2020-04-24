@@ -26,12 +26,12 @@ type alias WorldConfig =
     , elapsedTime : Float
     , environment : EnvironmentSettings
     , terrain : TerrainSettings
-    --, colorPalette : List PaletteColor
+    , colorPalette : List PaletteEntry
     }
 
 
 fromProjectFile : ProjectFile -> Result ConversionError WorldConfig
-fromProjectFile {subsystems} =
+fromProjectFile { subsystems } =
     Ok WorldConfig
         |> thenQuery X.string ["GameInfo", "WorldName"] subsystems
         |> thenQuery X.gameMode ["GameInfo", "GameMode"] subsystems
@@ -42,7 +42,7 @@ fromProjectFile {subsystems} =
         |> thenQuery X.double ["GameInfo", "TotalElapsedGameTime"] subsystems
         |> ResultE.andMap (environmentSettingsFromSubsystems subsystems)
         |> ResultE.andMap (terrainSettingsFromSubsystems subsystems)
-        --|> ResultE.andMap (colorPaletteFromSubsystems subsystems)
+        |> ResultE.andMap (colorPaletteFromSubsystems subsystems)
 
 
 type alias EnvironmentSettings =
@@ -116,8 +116,25 @@ type alias IslandSize =
 
 islandSizeFromSubsystems : List XmlItem -> Result ConversionError IslandSize
 islandSizeFromSubsystems subsystems =
-    case (query X.vector2 ["GameInfo", "IslandSize"] subsystems) of
+    case ( query X.vector2 ["GameInfo", "IslandSize"] subsystems ) of
         Ok vector ->
             Ok <| IslandSize vector.x vector.y
         Err error ->
             Err error
+
+
+colorPaletteFromSubsystems : List XmlItem -> Result ConversionError ( List PaletteEntry )
+colorPaletteFromSubsystems subsystems =
+    let
+        q t name =
+            query t [ "GameInfo", "Palette", name ] subsystems
+    in
+        case ( q X.paletteColors "Colors", q X.strList "Names" ) of
+            ( Ok colors, Ok names ) ->
+                Ok <| List.map2 PaletteEntry colors names
+
+            ( Err err, _ ) ->
+                Err err
+
+            ( _, Err err ) ->
+                Err err

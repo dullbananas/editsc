@@ -8,8 +8,11 @@ module GameTypes exposing
     , FurnitureInteraction(..)
     , WidgetInputDevice(..)
     , Vector2
+    , Vector3
+    , Quaternion
     , Point3
     , PaletteColor
+    , PaletteEntry
     )
 
 {-| This module defines types that are used by both the `World` and `ProjectFile`
@@ -78,10 +81,31 @@ type alias Vector2 =
     }
 
 
+type alias Vector3 =
+    { x : Float
+    , y : Float
+    , z : Float
+    }
+
+
+type alias Quaternion =
+    { w : Float
+    , x : Float
+    , y : Float
+    , z : Float
+    }
+
+
 type alias Point3 =
     { x : Int
     , y : Int
     , z : Int
+    }
+
+
+type alias PaletteEntry =
+    { color : Maybe PaletteColor
+    , name : String
     }
 
 

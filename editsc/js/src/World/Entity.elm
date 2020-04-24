@@ -2,47 +2,61 @@ module World.Entity exposing
     ( Entity
     , Alive
     , Animal
-    , Player
+    --, Player
     , PlayerBodyStats
     , BodyClothing
     , AnimalType
     )
 
-import GameTypes exposing (PlayerClass(..))
-import Vector3 exposing (Vector3)
-import Vector4 exposing (Vector4)
+import GameTypes exposing (..)
 
 
-type alias Entity a =
+type Entity
+    = Player PlayerData ( EntityData Alive )
+
+
+type alias EntityData a =
     { a
     | guid : String
-    , position : Vector3 Float
-    , rotation : Vector4 Float -- a quaternion value
-    , velocity : Vector3 Float
+    , position : Vector3
+    , rotation : Quaternion
+    , velocity : Vector3
     , spawnTime : Float
     , fireDuration : Float
     }
 
 
-type alias Alive a = -- Players and animals
-    Entity
-    { a
-    | health : Float
+type alias Alive =
+    { health : Float
     , air : Float
-    , creativeFlyEnabled : Bool
+    , creativeFlying : Bool
     , constantSpawn : Bool
     }
 
 
+type alias PlayerData =
+    { id : Int
+    }
+
+
+type Component
+    = Locomation
+        { creativeFlying : Bool }
+
+
+
+-- v OLD v
+
+
 type alias Animal a =
-    Alive
+    --Alive
     { a
     | lootDropped : Bool
     , animalType : AnimalType
     }
 
 
-type alias Player a =
+{-type alias Player a =
     Alive
     { a
     | playerId : Int
@@ -59,6 +73,7 @@ type alias Player a =
     -- , creativeInventory : TODO
     -- , craftingTableSlots : TODO
     }
+-}
 
 
 type alias PlayerBodyStats =

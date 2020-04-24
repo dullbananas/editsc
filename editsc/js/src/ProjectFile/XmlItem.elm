@@ -18,14 +18,23 @@ module ProjectFile.XmlItem exposing
     , double
     , string
     , bool
+
+    , blockType
+    , gameVersion
+
     , vector2
+    , vector3
+    , quaternion
     , point3
+
     , point3List
+    , strList
+    , paletteColors
+
     , gameMode
     , startingPositionMode
     , environmentBehavior
     , timeOfDayMode
-    , blockType
     , terrainGenerationMode
     )
 
@@ -34,6 +43,7 @@ import XmlParser exposing (Node(..), Attribute)
 import GameTypes exposing (..)
 import ConversionError exposing (ConversionError(..), NodeErrType(..))
 import World.BlockType as BlockType exposing (BlockType)
+import World.GameVersion as GameVersion exposing (GameVersion)
 
 import Result.Extra as ResultE
 import Maybe.Extra as MaybeE
@@ -216,6 +226,20 @@ vector2 = ValueType
     ( \{x, y} -> List.map String.fromFloat [x, y] |> String.join "," )
 
 
+vector3 : ValueType Vector3
+vector3 = ValueType
+    "Vector3"
+    ( vector3FromString String.toFloat Vector3 )
+    ( \{x, y, z} -> List.map String.fromFloat [x, y, z] |> String.join "," )
+
+
+quaternion : ValueType Quaternion
+quaternion = ValueType
+    "Quaternion"
+    ( vector4FromString String.toFloat Quaternion )
+    ( \{w, x, y, z} -> List.map String.fromFloat [w, x, y, z] |> String.join "," )
+
+
 point3 : ValueType Point3
 point3 = ValueType
     "Point3"
@@ -240,6 +264,17 @@ vector3FromString converter constructor str =
         [xs, ys, zs] ->
             case List.filterMap converter [xs, ys, zs] of
                 [x, y, z] -> Just (constructor x y z)
+                _ -> Nothing
+        _ ->
+            Nothing
+
+
+vector4FromString : (String -> Maybe a) -> (a -> a -> a -> a -> b) -> String -> Maybe b
+vector4FromString converter constructor str =
+    case String.split "," str of
+        [ws, xs, ys, zs] ->
+            case List.filterMap converter [ws, xs, ys, zs] of
+                [w, x, y, z] -> Just (constructor w x y z)
                 _ -> Nothing
         _ ->
             Nothing
@@ -334,3 +369,50 @@ terrainGenerationMode = enumType
         Island -> "Island"
         FlatContinent -> "FlatContinent"
         FlatIsland -> "FlatIsland" )
+
+
+paletteColors : ValueType ( List (Maybe PaletteColor) )
+paletteColors =
+    { name = "string"
+    , fromString =
+        String.split ";" >> List.map parseColor >> MaybeE.combine
+    , toString =
+        List.map ( Maybe.map colorToString >> Maybe.withDefault "" )
+        >> String.join ";"
+    }
+
+
+parseColor : String -> Maybe ( Maybe PaletteColor )
+parseColor str =
+    case String.split "," str |> List.map String.toInt of
+        [ Nothing ] ->
+            Just Nothing
+
+        [ Just red, Just green, Just blue ] ->
+            Just <| Just <| PaletteColor red green blue
+
+        _ ->
+            Nothing
+
+
+colorToString : PaletteColor -> String
+colorToString { red, green, blue } =
+        [ red, green, blue ]
+            |> List.map String.fromInt
+            |> String.join ","
+
+
+strList : ValueType ( List String )
+strList =
+    { name = "string"
+    , fromString = Just << String.split ";"
+    , toString = String.join ";"
+    }
+
+
+gameVersion : ValueType GameVersion
+gameVersion =
+    { name = "string"
+    , fromString = GameVersion.fromString
+    , toString = GameVersion.toString
+    }

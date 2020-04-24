@@ -1,7 +1,6 @@
 module TestWorld exposing (suite)
 
-import Expect exposing (Expectation, equal)
-import Fuzz exposing (Fuzzer, int, list, string)
+import Expect exposing (Expectation)
 import Test exposing (Test, test, describe)
 
 import Result.Extra as ResultE
@@ -81,9 +80,9 @@ projectFile =
     { subsystems =
         [ MultiValues <| Values "GameInfo"
             [ OneValue <| Value "WorldName" "string" "Good World"
-            --, OneValue <| Value "OriginalSetializationVersion" "string" "2.2"
-            , OneValue <| Value "GameMode" "Game.GameMode" "Creative"
+            , OneValue <| Value "OriginalSerializationVersion" "string" "2.2"
             , OneValue <| Value "EnvironmentBehaviorMode" "Game.EnvironmentBehaviorMode" "Living"
+            , OneValue <| Value "GameMode" "Game.GameMode" "Creative"
             , OneValue <| Value "TimeOfDayMode" "Game.TimeOfDayMode" "Changing"
             , OneValue <| Value "AreWeatherEffectsEnabled" "bool" "True"
             , OneValue <| Value "IsAdventureRespawnAllowed" "bool" "True"
@@ -103,12 +102,10 @@ projectFile =
             , OneValue <| Value "BiomeSize" "float" "1"
             , OneValue <| Value "StartingPositionMode" "Game.StartingPositionMode" "Easy"
             , OneValue <| Value "BlockTextureName" "string" ""
-            {-
             , MultiValues <| Values "Palette"
                 [ OneValue <| Value "Colors" "string" ";0,255,255;255,0,255;;;;;;;;;;;;;"
                 , OneValue <| Value "Names" "string" ";;;;;;;;;;;;;;;"
                 ]
-            -}
             , OneValue <| Value "WorldSeed" "int" "10116"
             , OneValue <| Value "TotalElapsedGameTime" "double" "10"
             ]
@@ -154,5 +151,18 @@ world =
                 }
             , islandSize = { northSouth = 400.0, eastWest = 400.0 }
             }
+        , colorPalette =
+            [ paletteNone
+            , PaletteEntry ( Just <| PaletteColor 0 255 255 ) ""
+            , PaletteEntry ( Just <| PaletteColor 255 0 255 ) ""
+            ] ++ List.repeat 13 paletteNone
         }
+    , originalVersion = GameVersion.latest
+    }
+
+
+paletteNone : PaletteEntry
+paletteNone =
+    { color = Nothing
+    , name = ""
     }

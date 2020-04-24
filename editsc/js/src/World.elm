@@ -16,7 +16,7 @@ import World.WorldConfig as WorldConfig exposing (WorldConfig)
 import World.Entity as Entity exposing (Entity)
 import GameTypes exposing (..)
 import ProjectFile exposing (ProjectFile)
-import ProjectFile.XmlItem as X exposing (val, vals)
+import ProjectFile.XmlItem as X exposing (val, vals, query)
 import ConversionError exposing (ConversionError(..))
 
 
@@ -24,7 +24,7 @@ type alias World =
     { currentVersion : GameVersion
     , guid : String
     , config : WorldConfig
-    --, originalVersion : GameVersion
+    , originalVersion : GameVersion
     --, entities : List (Entity {})
     --, blockData : List BlockDataEntry
     }
@@ -36,6 +36,7 @@ fromProjectFile projectFile =
         |> ResultE.andMap (GameVersion.fromString projectFile.version |> Result.fromMaybe InvalidVersion)
         |> ResultE.andMap (Ok projectFile.guid)
         |> ResultE.andMap (WorldConfig.fromProjectFile projectFile)
+        |> ResultE.andMap (query X.gameVersion ["GameInfo","OriginalSerializationVersion"] projectFile.subsystems)
 
 
 fromXmlString : String -> Result ConversionError World
@@ -80,6 +81,13 @@ toProjectFile world =
                 { x = world.config.terrain.islandSize.northSouth
                 , y = world.config.terrain.islandSize.eastWest
                 }
+
+            , vals "Palette"
+                [ val X.paletteColors "Colors" <| List.map .color world.config.colorPalette
+                , val X.strList "Names" <| List.map .name world.config.colorPalette
+                ]
+
+            , val X.gameVersion "OriginalSerializationVersion" world.originalVersion
             ]
         ]
 

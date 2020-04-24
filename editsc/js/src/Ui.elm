@@ -6,6 +6,8 @@ module Ui exposing
     , icon
     , panel
     , textInput
+    , tabButtonRow
+    , box
 
     , HeadingLevel(..)
     , Button
@@ -15,6 +17,8 @@ module Ui exposing
     , txt
 
     , light
+
+    , id
     )
 
 import Element exposing (..)
@@ -315,3 +319,8 @@ type alias CssShadow =
     , color : Color
     , inset : Bool
     }
+
+
+id : String -> Attribute msg
+id name =
+    htmlAttribute <| HtmlAttr.id name

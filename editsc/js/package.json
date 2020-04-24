@@ -1,7 +1,7 @@
 {
   "name": "editsc",
   "version": "0.0.0",
-  "description": "Front-end scripts used for EditSC",
+  "description": "Front-end of EditSC",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

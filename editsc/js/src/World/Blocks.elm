@@ -9,7 +9,7 @@ module World.Blocks exposing
     , CraftingTableState
     )
 
-import Vector3 exposing (Vector3)
+import GameTypes exposing (..)
 import Bitwise
 
 import World.BlockType as BlockType exposing (BlockType)
@@ -102,8 +102,13 @@ type alias CraftingTableState =
 
 type alias SignLine =
     { content : String
-    , color : Maybe (Vector3 Int)
+    , color : TextColor
     }
+
+
+type TextColor
+    = DefaultColor
+    | CustomColor Int Int Int
 
 
 type alias ItemSlot =
