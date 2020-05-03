@@ -2,7 +2,6 @@ module World.Entity exposing
     ( Entity
     , Alive
     , Animal
-    --, Player
     , PlayerBodyStats
     , BodyClothing
     , AnimalType
@@ -36,11 +35,16 @@ type alias Alive =
 
 type alias PlayerData =
     { id : Int
+    , stats : PlayerStats
     }
 
 
+type alias PlayerStats =
+    {}
+
+
 type Component
-    = Locomation
+    = Locomotion
         { creativeFlying : Bool }
 
 

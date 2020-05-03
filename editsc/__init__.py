@@ -1,5 +1,5 @@
 import flask
-import flask_assets
+#import flask_assets
 from flask_htmlmin import HTMLMIN
 from .config import DevelopmentConfig, ProductionConfig
 
@@ -37,10 +37,10 @@ def create_app(production, root='/'):
 
 	# Initialize Flask-Assets
 
-	assets = flask_assets.Environment(app)
+	#assets = flask_assets.Environment(app)
 
-	bootstrap = flask_assets.Bundle('custom.scss', filters='libsass,cssmin', output='gen/style.css')
-	assets.register('bootstrap', bootstrap)
+	#bootstrap = flask_assets.Bundle('custom.scss', filters='libsass,cssmin', output='gen/style.css')
+	#assets.register('bootstrap', bootstrap)
 
 	# Prevent caching
 

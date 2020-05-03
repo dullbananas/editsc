@@ -15,13 +15,19 @@ module.exports = {
 				],
 			},
 			{
-				test: /\.elm?$/,
+				test: /\.elm$/,
 				include: path.resolve(__dirname, 'src'),
 				exclude: path.resolve(__dirname, 'node_modules'),
 				use: {
 					loader: 'elm-webpack-loader',
+					options: {
+						files: [
+							'src/Main.elm',
+							'src/Styles.elm',
+						].map(name => path.resolve(__dirname, name)),
+					},
 				},
-			}
+			},
 		],
 	},
 	resolve: {

@@ -23,7 +23,7 @@ type alias WorldConfig =
     , adventureSurvivalMechanics : Bool
     , startPositionMode : StartingPositionMode
     , textureFileName : String
-    , elapsedTime : Float
+    , elapsedTime : Double
     , environment : EnvironmentSettings
     , terrain : TerrainSettings
     , colorPalette : List PaletteEntry

@@ -20,16 +20,15 @@ let world: World | undefined = undefined;
 // Initialize Elm
 
 
-var M = require('./Main.elm');
-var C = require('./Css.elm');
+let Elm = require('./Main.elm').Elm;
 
 
-let app = M.Elm.Main.init({
+let app = Elm.Main.init({
 	node: document.getElementById('ui'),
 });
 
 
-let cssApp = C.Elm.Css.init({
+let cssApp = Elm.Styles.init({
 	node: document.getElementById('style'),
 });
 

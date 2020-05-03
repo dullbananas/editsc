@@ -111,7 +111,7 @@ subscriptions _ =
 view : Model -> Html Msg
 view model =
     layout
-        [ Background.color light
+        [ Background.color <| neuBackground Light
         ]
         ( body model )
 
@@ -125,9 +125,10 @@ body model =
         ]
 
         [ heading H1 "EditSC"
+        , bodyLink "GitHub repository" "https://github.com/dullbananas/editsc"
         , bodyText "Welcome to EditSC. Upload a .scworld file below to start editing."
         , fileInput "scworld-input"
-        , button { btn | iconName = "file-import", label = "Import" } StartImporting
+        , button Light { btn | iconName = "file-import", label = "Import" } StartImporting
         , viewStatus model
         ]
 

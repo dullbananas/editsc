@@ -24,6 +24,7 @@ import Html exposing (Html)
 type alias Model =
     { world : World
     , currentTab : Tab
+    , theme : Theme
     }
 
 
@@ -51,6 +52,7 @@ init : World -> Model
 init world =
     { world = world
     , currentTab = Collapsed
+    , theme = Light
     }
 
 
@@ -126,21 +128,23 @@ body model =
                     (
                     [ id "inspector"
                     , alignBottom
+                    , alignRight
                     , width <| maximum 400 fill
-                    ] ++ box )
+                    ] ++ box model.theme )
 
-                    ( tabButtonRow <| inspectorButtons model.currentTab )
+                    ( tabButtonRow <| inspectorButtons model )
 
             _ ->
                 column
                 (
                 [ spacing 16
                 , alignBottom
+                , alignRight
                 , width <| maximum 400 fill
                 , id "inspector"
-                ] ++ box )
+                ] ++ box model.theme )
 
-                [ tabButtonRow <| inspectorButtons model.currentTab
+                [ tabButtonRow <| inspectorButtons model
                 , column
                     [ spacing 16
                     , height fill
@@ -178,30 +182,36 @@ viewInspector model =
                 { txt | content = fileName, name = "Filename" }
                 ChangeSaveName
             , button
+                model.theme
                 { btn | iconName = "file-download", label = "Save" }
                 ( SaveWorld fileName )
             ]
 
 
-inspectorButtons : Tab -> List ( Element Msg )
-inspectorButtons currentTab =
+inspectorButtons : Model -> List ( Element Msg )
+inspectorButtons model =
     let
         currentIndex : Int
         currentIndex =
-            case currentTab of
+            case model.currentTab of
                 Collapsed -> 0
                 DebugView -> 1
                 Saver _ -> 2
+
+        tbtn : String -> Tab -> Int -> Element Msg
+        tbtn =
+            tabButton model.theme currentIndex
     in
-        [ tabButton "caret-down" Collapsed 0 currentIndex
-        , tabButton "project-diagram" DebugView 1 currentIndex
-        , tabButton "file-download" ( Saver initSaver ) 2 currentIndex
+        [ tbtn "caret-down" Collapsed 0
+        , tbtn "project-diagram" DebugView 1
+        , tbtn "file-download" ( Saver initSaver ) 2
         ]
 
 
-tabButton : String -> Tab -> Int -> Int -> Element Msg
-tabButton iconName initTab index currentIndex =
+tabButton : Theme -> Int -> String -> Tab -> Int -> Element Msg
+tabButton theme currentIndex iconName initTab index =
     button
+        theme
         { btn
         | iconName = iconName
         , active = ( index == currentIndex )

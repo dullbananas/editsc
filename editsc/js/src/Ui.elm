@@ -1,6 +1,7 @@
 module Ui exposing
     ( heading
     , bodyText
+    , bodyLink
     , fileInput
     , button
     , icon
@@ -10,13 +11,14 @@ module Ui exposing
     , box
 
     , HeadingLevel(..)
+    , Theme(..)
     , Button
     , TextInput
 
     , btn
     , txt
 
-    , light
+    , neuBackground
 
     , id
     )
@@ -66,6 +68,15 @@ bodyText content =
         [ text content ]
 
 
+bodyLink : String -> String -> Element msg
+bodyLink label url =
+    paragraph
+        [ fontFamily
+        , Font.size 16
+        ]
+        [ link [] { url = url, label = text label } ]
+
+
 fileInput : String -> Element msg
 fileInput idName =
     el [] <| html <| Html.input
@@ -75,17 +86,18 @@ fileInput idName =
         []
 
 
-button : Button -> msg -> Element msg
-button { iconName, label, active } clickMsg =
+button : Theme -> Button -> msg -> Element msg
+button theme { iconName, label, active } clickMsg =
     let
         attrs =
             [ fontFamily
             , height <| px 48
-            , outset
+            , outset theme
             , Font.size 24
             , Border.rounded 24
             , Event.onClick clickMsg
             , Font.color <| if active then blue else gray
+            , Background.color <| neuForeground theme
             ]
     in
         case label of
@@ -131,10 +143,10 @@ icon iconName =
             []
 
 
-panel : List ( Attribute msg ) -> List ( Element msg ) -> List ( Element msg ) -> Element msg
-panel attrs buttons content =
+panel : Theme -> List ( Attribute msg ) -> List ( Element msg ) -> List ( Element msg ) -> Element msg
+panel theme attrs buttons content =
     column
-        ( spacing 16 :: attrs ++ box )
+        ( spacing 16 :: attrs ++ box theme )
 
         [ tabButtonRow buttons
         , column [ spacing 16 ] <| content
@@ -146,12 +158,18 @@ tabButtonRow =
     row [ spacing 8 ]
 
 
-box : List ( Attribute msg )
-box =
+box : Theme -> List ( Attribute msg )
+box theme =
     [ fontFamily
-    , Background.color light
+    , Background.color <| neuBackground theme
     , Border.rounded 36
     , paddingXY 12 12
+    , Border.shadow
+        { offset = ( 0, 4 )
+        , size = 0
+        , blur = 8
+        , color = rgba255 0 0 0 0.5
+        }
     ]
 
 
@@ -186,17 +204,47 @@ txt =
 
 
 
--- Colors
+-- Theme
 
 
-light : Color
-light =
-    rgb255 230 236 242
+type Theme
+    = Light
 
 
-white : Color
-white =
-    rgb255 242 249 255
+
+-- Neumorphism Colors
+
+
+neuBackground : Theme -> Color
+neuBackground theme =
+    case theme of
+        Light ->
+            rgb255 235 235 235
+
+
+neuForeground : Theme -> Color
+neuForeground theme =
+    case theme of
+        Light ->
+            rgb255 242 242 242
+
+
+neuShadowLight : Theme -> Color
+neuShadowLight theme =
+    case theme of
+        Light ->
+            rgb255 255 255 255
+
+
+neuShadowDark : Theme -> Color
+neuShadowDark theme =
+    case theme of
+        Light ->
+            rgb255 230 230 230
+
+
+
+-- Foreground/misc colors
 
 
 maxWhite : Color
@@ -204,46 +252,41 @@ maxWhite =
     rgb255 255 255 255
 
 
-dimmedLight : Color -- Slightly darker verison of light; used for shadows
-dimmedLight =
-    rgb255 184 200 217
-
-
 blue : Color
 blue =
-    rgb255 0 115 230
+    rgb255 0 119 255
 
 
 gray : Color
 gray =
-    rgb255 96 112 128
+    rgb255 128 118 128
 
 
 
 -- Misc
 
 
-outset : Attribute msg
-outset =
+outset : Theme -> Attribute msg
+outset theme =
     multiShadows
         [
-            { offset = ( 2, 2 )
-            , blur = 2
+            { offset = ( 4, 4 )
+            , blur = 4
             , spread = 0
-            , color = dimmedLight
+            , color = neuShadowDark theme
             , inset = False
             }
         ,
-            { offset = ( -2, -2 )
-            , blur = 2
+            { offset = ( -4, -4 )
+            , blur = 4
             , spread = 0
-            , color = white
+            , color = neuShadowLight theme
             , inset = False
             }
         ]
 
 
-inset : Attribute msg
+{-inset : Attribute msg
 inset =
     multiShadows
         [
@@ -260,7 +303,7 @@ inset =
             , color = white
             , inset = True
             }
-        ]
+        ]-}
 
 
 fontFamily : Attribute msg

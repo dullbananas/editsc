@@ -13,6 +13,8 @@ module GameTypes exposing
     , Point3
     , PaletteColor
     , PaletteEntry
+    , Long(..)
+    , Double(..)
     )
 
 {-| This module defines types that are used by both the `World` and `ProjectFile`
@@ -114,3 +116,14 @@ type alias PaletteColor =
     , green : Int
     , blue : Int
     }
+
+
+-- TODO: make these types able to hold large values
+
+
+type Long
+    = Long Int
+
+
+type Double
+    = Double Float

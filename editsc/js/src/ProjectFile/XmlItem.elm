@@ -189,9 +189,11 @@ int = ValueType
     "int" String.toInt String.fromInt
 
 
-long : ValueType Int
+long : ValueType Long
 long = ValueType
-    "long" String.toInt String.fromInt
+    "long"
+    ( Maybe.map Long << String.toInt )
+    ( \(Long v) -> String.fromInt v )
 
 
 float : ValueType Float
@@ -199,9 +201,11 @@ float = ValueType
     "float" String.toFloat String.fromFloat
 
 
-double : ValueType Float
+double : ValueType Double
 double = ValueType
-    "double" String.toFloat String.fromFloat
+    "double"
+    ( Maybe.map Double << String.toFloat )
+    ( \(Double v) -> String.fromFloat v )
 
 
 string : ValueType String
