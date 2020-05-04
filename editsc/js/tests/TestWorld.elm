@@ -67,12 +67,21 @@ sortChildren xmlItem =
 getName : XmlItem -> String
 getName xmlItem =
     case xmlItem of
-        OneValue v ->
-            v.name
+        OneValue vv ->
+            vv.name
 
-        MultiValues v ->
-            v.name
+        MultiValues vv ->
+            vv.name
 
+
+
+mv : String -> List XmlItem -> XmlItem
+mv name content =
+    MultiValues <| Values name content
+
+v : String -> String -> String -> XmlItem
+v name typename value =
+    OneValue <| Value name typename value
 
 
 projectFile : ProjectFile
@@ -109,6 +118,11 @@ projectFile =
             , OneValue <| Value "WorldSeed" "int" "10116"
             , OneValue <| Value "TotalElapsedGameTime" "double" "10"
             ]
+        , mv "Weather"
+            [ v "WeatherStartTime" "double" "123.4"
+            , v "WeatherEndTime" "double" "567.8"
+            , v "LightningIntensity" "float" "0"
+            ]
         ]
     , entities = []
     , version = "2.2"
@@ -127,7 +141,6 @@ world =
         , adventureSurvivalMechanics = False
         , startPositionMode = Easy
         , textureFileName = ""
-        , elapsedTime = 10.0
         , environment =
             { behavior = Living
             , supernaturalCreatures = False
@@ -156,6 +169,14 @@ world =
             , PaletteEntry ( Just <| PaletteColor 0 255 255 ) ""
             , PaletteEntry ( Just <| PaletteColor 255 0 255 ) ""
             ] ++ List.repeat 13 paletteNone
+        }
+    , state =
+        { elapsedTime = doubleFromFloat 10.0
+        , weather =
+            { startTime = doubleFromFloat 123.4
+            , endTime = doubleFromFloat 567.8
+            , lightningIntensity = 0
+            }
         }
     , originalVersion = GameVersion.latest
     }

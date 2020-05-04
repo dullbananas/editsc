@@ -15,6 +15,9 @@ module GameTypes exposing
     , PaletteEntry
     , Long(..)
     , Double(..)
+
+    , doubleFromFloat
+    , longFromInt
     )
 
 {-| This module defines types that are used by both the `World` and `ProjectFile`
@@ -127,3 +130,13 @@ type Long
 
 type Double
     = Double Float
+
+
+doubleFromFloat : Float -> Double
+doubleFromFloat =
+    Double
+
+
+longFromInt : Int -> Long
+longFromInt =
+    Long

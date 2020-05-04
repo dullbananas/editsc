@@ -13,6 +13,7 @@ import World.Blocks as Blocks exposing (BlockDataEntry)
 import World.BlockType exposing (BlockType)
 import World.GameVersion as GameVersion exposing (GameVersion)
 import World.WorldConfig as WorldConfig exposing (WorldConfig)
+import World.WorldState as WorldState exposing (WorldState)
 import World.Entity as Entity exposing (Entity)
 import GameTypes exposing (..)
 import ProjectFile exposing (ProjectFile)
@@ -24,6 +25,7 @@ type alias World =
     { currentVersion : GameVersion
     , guid : String
     , config : WorldConfig
+    , state : WorldState
     , originalVersion : GameVersion
     --, entities : List (Entity {})
     --, blockData : List BlockDataEntry
@@ -36,6 +38,7 @@ fromProjectFile projectFile =
         |> ResultE.andMap (GameVersion.fromString projectFile.version |> Result.fromMaybe InvalidVersion)
         |> ResultE.andMap (Ok projectFile.guid)
         |> ResultE.andMap (WorldConfig.fromProjectFile projectFile)
+        |> ResultE.andMap (WorldState.fromProjectFile projectFile)
         |> ResultE.andMap (query X.gameVersion ["GameInfo","OriginalSerializationVersion"] projectFile.subsystems)
 
 
@@ -56,7 +59,6 @@ toProjectFile world =
             , val X.bool "AreAdventureSurvivalMechanicsEnabled" world.config.adventureSurvivalMechanics
             , val X.startingPositionMode "StartingPositionMode" world.config.startPositionMode
             , val X.string "BlockTextureName" world.config.textureFileName
-            , val X.double "TotalElapsedGameTime" world.config.elapsedTime
 
             , val X.environmentBehavior "EnvironmentBehaviorMode" world.config.environment.behavior
             , val X.bool "AreSupernaturalCreaturesEnabled" world.config.environment.supernaturalCreatures
@@ -88,6 +90,13 @@ toProjectFile world =
                 ]
 
             , val X.gameVersion "OriginalSerializationVersion" world.originalVersion
+
+            , val X.double "TotalElapsedGameTime" world.state.elapsedTime
+            ]
+        , vals "Weather"
+            [ val X.double "WeatherStartTime" world.state.weather.startTime
+            , val X.double "WeatherEndTime" world.state.weather.endTime
+            , val X.float "LightningIntensity" world.state.weather.lightningIntensity
             ]
         ]
 

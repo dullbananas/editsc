@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@types/node": "^13.9.5",
+    "elm-test": "^0.19.1-revision2",
     "elm-webpack-loader": "^6.0.1",
     "ts-loader": "^6.2.1",
     "typescript": "^3.8.3",
