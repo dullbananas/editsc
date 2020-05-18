@@ -28,3 +28,10 @@ port chunksError : ( String -> msg ) -> Sub msg
 
 
 port saveWorld : { fileName : String, xml : String } -> Cmd msg
+
+
+
+-- Info given by JavaScript to be displayed in the UI
+
+
+port jsInfo : ( String -> msg ) -> Sub msg

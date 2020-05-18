@@ -3,6 +3,7 @@ const Chunks32h = require('./Chunks32h');
 const KaitaiStream = require('kaitai-struct/KaitaiStream');
 const download = require('downloadjs');
 import {World} from './world';
+import * as rendering from './rendering';
 
 //zip.workerScriptsPath = '/zipjs/';
 
@@ -13,7 +14,7 @@ import {World} from './world';
 
 let chunksFileEntry: any | undefined = undefined;
 
-let world: World | undefined = undefined;
+export let world: World = new World(null);
 
 
 
@@ -23,7 +24,7 @@ let world: World | undefined = undefined;
 let Elm = require('./Main.elm').Elm;
 
 
-let app = Elm.Main.init({
+export let app = Elm.Main.init({
 	node: document.getElementById('ui'),
 });
 
@@ -47,54 +48,23 @@ app.ports.extractZip.subscribe(function(): void {
 	switch (fileInput.files!.length) {
 		case 1:
 			let file: File = fileInput.files![0];
-			console.log(0);
 
 			JSZip.loadAsync(file).then(function(zip: any/*: JSZip*/) {
-				console.log(1);
 				const chunksObj = zip.file(/Chunks32h\.dat$/)[0];
-				console.log(2);
 				const projectObj = zip.file(/Project\.xml$/)[0];
-				console.log([chunksObj,projectObj]);
 
 				if ( chunksObj && projectObj ) {
 					chunksFileEntry = chunksObj; // save chunks file for later
-					console.log(3);
 
 					projectObj.async('string').then(function(content: String) {
-						console.log(3);
+						// Send Project.xml to Elm
 						app.ports.gotProjectFile.send(content);
-						console.log(4);
 					});
 				}
 				else {
 					zipErr("The scworld file doesn't contain the right files. It might be in an unsupported Survivalcraft version.");
 				}
 			});
-			/*let blobReader = new zip.BlobReader(file);
-
-			zip.createReader(blobReader, function(reader: zip.ZipReader): void {
-				let projectEntry: zip.Entry | undefined = undefined;
-
-				reader.getEntries(function(entries: zip.Entry[]): void {
-					entries.forEach(function(entry: zip.Entry): void {
-						if (entry.filename.endsWith("Project.xml")) {
-							projectEntry = entry;
-						}
-						else if (entry.filename.endsWith("Chunks32h.dat")) {
-							chunksFileEntry = entry;
-						}
-					});
-
-					if (projectEntry && chunksFileEntry) {
-						projectEntry.getData(new zip.TextWriter(), function(content) {
-							app.ports.gotProjectFile.send(content);
-						});
-					}
-					else {
-						zipErr("The scworld file doesn't contain the right files. The world might be in an unsupported Survivalcraft version.");
-					}
-				});
-			}, zipErr);*/
 			break;
 
 		default:
@@ -129,6 +99,17 @@ app.ports.parseChunks.subscribe(function(): void {
 					default:
 						world = new World(chunksStruct);
 						app.ports.chunksReady.send(null);
+						// Editor is now ready to start; importing is done.
+						// Start 3D rendering
+						rendering.renderLoop();
+						rendering.startKeyEvents();
+						rendering.initCameraPosition();
+						for (let chunk of world.chunks) {
+							rendering.renderChunk(chunk);
+							rendering.forceRenderFrame();
+						}
+						console.log(world);
+						console.log(rendering.scene);
 				}
 			};
 		});
@@ -155,10 +136,3 @@ app.ports.saveWorld.subscribe(function(arg: {fileName: string, xml: string}): vo
 		download(blob, arg.fileName, "application/zip");
 	});
 });
-
-
-
-// Make this file a module
-
-
-export {};

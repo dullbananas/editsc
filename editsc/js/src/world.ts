@@ -1,13 +1,20 @@
 export class World {
-	chunks: any[];
+	chunks: Array<Chunk>;
 
 
-	constructor(struct: any) {
-		this.chunks = struct.chunks.map(
-			function(chunkStruct: any, index: number) {
-				return new Chunk(chunkStruct, index);
-			}
-		);
+	constructor(struct: any | null) {
+		switch (struct) {
+			case null:
+				this.chunks = [];
+				break;
+
+			default:
+				this.chunks = struct.chunks.map(
+					function(chunkStruct: any, index: number) {
+						return new Chunk(chunkStruct, index);
+					}
+				);
+		}
 	}
 }
 
@@ -65,4 +72,27 @@ function combineArrays(arrays: Uint8Array[]): Uint8Array {
 	}
 
 	return result;
+}
+
+
+export function countFullBlocks(blocks: Uint32Array): number {
+	return blocks.filter(
+		(block: number, index: number, arr: Uint32Array) =>
+			isFullBlock(block)
+	).length;
+}
+
+
+export function isFullBlock(block: number): boolean {
+	return getBlockType(block) != 0;
+}
+
+
+export function getBlockIndex(x: number, y: number, z: number): number {
+	return y + x * 256 + z * 256 * 16;
+}
+
+
+function getBlockType(block: number): number {
+	return block & 0b1111111111;
 }

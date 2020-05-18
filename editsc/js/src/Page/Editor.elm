@@ -25,6 +25,7 @@ type alias Model =
     { world : World
     , currentTab : Tab
     , theme : Theme
+    , jsInfo : String
     }
 
 
@@ -53,6 +54,7 @@ init world =
     { world = world
     , currentTab = Collapsed
     , theme = Light
+    , jsInfo = "no info"
     }
 
 
@@ -64,6 +66,7 @@ type Msg
     = SwitchTab Tab
     | ChangeSaveName String
     | SaveWorld String
+    | GotJsInfo String
 
 
 update : Msg -> Model -> ( Model, Cmd msg )
@@ -85,6 +88,9 @@ update msg model =
                 }
             )
 
+        GotJsInfo string ->
+            ( { model | jsInfo = string }, Cmd.none )
+
 
 
 -- Subscriptions
@@ -92,7 +98,9 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Sub.batch
+        [ Port.jsInfo GotJsInfo
+        ]
 
 
 
@@ -127,7 +135,7 @@ body model =
                 el
                     (
                     [ id "inspector"
-                    , alignBottom
+                    , alignTop
                     , alignRight
                     , width <| maximum 400 fill
                     ] ++ box model.theme )
@@ -138,7 +146,7 @@ body model =
                 column
                 (
                 [ spacing 16
-                , alignBottom
+                , alignTop
                 , alignRight
                 , width <| maximum 400 fill
                 , id "inspector"
@@ -173,7 +181,8 @@ viewInspector model =
 
         DebugView ->
             [ heading H1 "Debug view"
-            , bodyText <| Debug.toString model.world
+            , bodyText <| model.jsInfo
+            --, bodyText <| Debug.toString model.world
             ]
 
         Saver { fileName } ->

@@ -8,23 +8,24 @@ import Html exposing (Html)
 import Browser
 
 
-main : Program () () Never
+{-main : Program () () Never
 main =
     Browser.element
         { init = always ( (), Cmd.none )
         , update = \_ model -> ( model, Cmd.none )
         , subscriptions = always Sub.none
         , view = always view
-        }
+        }-}
 
 
-view : Html Never
-view =
+main : Html Never
+main =
     toUnstyled <| global
         [ each [ html, body ]
             [ margin zero
             , padding zero
             , overflow hidden
+            , backgroundColor (rgb 128 128 128)
             ]
 
         , each [ id "world-canvas", id "ui-wrapper", html, body ]
@@ -34,7 +35,6 @@ view =
 
         , id "world-canvas"
             [ zIndex (int -4)
-            , backgroundColor (rgb 255 0 255)
             ]
 
         , id "ui-wrapper"

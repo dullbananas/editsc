@@ -73,6 +73,7 @@ bodyLink label url =
     paragraph
         [ fontFamily
         , Font.size 16
+        , Font.color blue
         ]
         [ link [] { url = url, label = text label } ]
 
@@ -270,15 +271,15 @@ outset : Theme -> Attribute msg
 outset theme =
     multiShadows
         [
-            { offset = ( 4, 4 )
-            , blur = 4
+            { offset = ( 3, 3 )
+            , blur = 3
             , spread = 0
             , color = neuShadowDark theme
             , inset = False
             }
         ,
-            { offset = ( -4, -4 )
-            , blur = 4
+            { offset = ( -3, -3 )
+            , blur = 3
             , spread = 0
             , color = neuShadowLight theme
             , inset = False

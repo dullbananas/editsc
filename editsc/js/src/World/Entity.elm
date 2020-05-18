@@ -36,11 +36,75 @@ type alias Alive =
 type alias PlayerData =
     { id : Int
     , stats : PlayerStats
+    , firstSpawn : Double
+    , lastSpawn : Double
+    , spawnCount : Long
+    , name : String
+    , playerClass : PlayerClass
+    , level : Float
+    , skinName : String
+    , inputDevice : WidgetInputDevice
     }
 
 
 type alias PlayerStats =
-    {}
+    { movement : MovementStats
+    , items : ItemStats
+    , attack : AttackStats
+    , dangerStats : DangerStats
+    , maxLevel : Double
+    , easiestMode : GameMode
+    , timeSlept : Double
+    , sleepSessions : Long
+    , foodEaten : Long
+    }
+
+
+type alias MovementStats =
+    { traveled : Double
+    , walked : Double
+    , fallen : Double
+    , climbed : Double
+    , flown : Double
+    , swam : Double
+    , ridden : Double
+    , lowestAltitude : Double
+    , highest : Double
+    , deepestDive : Double
+    , jumps : Long
+    }
+
+
+type alias ItemStats =
+    { dug : Long
+    , placed : Long
+    , interacted : Long
+    , crafted : Long
+    , furnitureMade : Long
+    }
+
+
+type alias AttackStats =
+    { playerKills : Long
+    , landKills : Long
+    , waterKills : Long
+    , airKills : Long
+    , meleeAttacks : Long
+    , meleeHits : Long
+    , rangedAttacks : Long
+    , rangedHits : Long
+    }
+
+
+type alias DangerStats =
+    { hits : Long
+    , lightningStrikes : Long
+    , lostHealth : Double
+    , sick : Long
+    , flu : Long
+    , puked : Long
+    , deathRecords : List String
+    }
 
 
 type Component
