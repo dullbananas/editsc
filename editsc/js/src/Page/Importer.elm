@@ -112,6 +112,7 @@ view : Model -> Html Msg
 view model =
     layout
         [ Background.color <| neuBackground Light
+        , id "ui"
         ]
         ( body model )
 
@@ -120,7 +121,7 @@ body : Model -> Element Msg
 body model =
     column
         [ width fill
-        , paddingXY 32 16
+        , paddingXY 24 16
         , spacing 16
         ]
 
@@ -128,7 +129,9 @@ body model =
         , bodyLink "GitHub repository" "https://github.com/dullbananas/editsc"
         , bodyText "Welcome to EditSC. Upload a .scworld file below to start editing."
         , fileInput "scworld-input"
-        , button Light { btn | iconName = "file-import", label = "Import" } StartImporting
+        , el
+            [ width <| px 120 ]
+            <| button Light { btn | iconName = "file-import", label = "Import" } StartImporting
         , viewStatus model
         ]
 

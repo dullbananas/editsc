@@ -21,6 +21,7 @@ module Ui exposing
     , neuBackground
 
     , id
+    , fontFamily
     )
 
 import Element exposing (..)
@@ -92,10 +93,10 @@ button theme { iconName, label, active } clickMsg =
     let
         attrs =
             [ fontFamily
-            , height <| px 48
+            , height <| px 44
             , outset theme
-            , Font.size 24
-            , Border.rounded 24
+            , Font.size 22
+            , Border.rounded 22
             , Event.onClick clickMsg
             , Font.color <| if active then blue else gray
             , Background.color <| neuForeground theme
@@ -104,19 +105,22 @@ button theme { iconName, label, active } clickMsg =
         case label of
             "" ->
                 el
-                    ( attrs ++ [ width <| px 48 ] )
+                    ( attrs ++ [ width <| px 44 ] )
                     ( el [ centerX, centerY ] <| icon iconName )
 
             labelText ->
                 row
                     (
                         attrs ++
-                        [ paddingXY 16 0
-                        , spacing 16
+                        [ paddingXY 14 0
+                        , spacing 14
                         , Font.size 16
+                        , width fill
                         ]
                     )
-                    [ icon iconName, text labelText ]
+                    [ icon iconName
+                    , el [ centerX ] ( text labelText )
+                    ]
 
 type alias Button =
     { iconName : String
@@ -156,21 +160,22 @@ panel theme attrs buttons content =
 
 tabButtonRow : List ( Element msg ) -> Element msg
 tabButtonRow =
-    row [ spacing 8 ]
+    row [ spacing 8, alignRight{-, explain Debug.todo-} ]
 
 
 box : Theme -> List ( Attribute msg )
 box theme =
     [ fontFamily
     , Background.color <| neuBackground theme
-    , Border.rounded 36
-    , paddingXY 12 12
+    , Border.rounded 34
+    , paddingXY 13 13
     , Border.shadow
-        { offset = ( 0, 4 )
+        { offset = ( 0, 0 )
         , size = 0
         , blur = 8
-        , color = rgba255 0 0 0 0.5
+        , color = rgba255 0 0 0 0.2
         }
+    , alpha 0.9
     ]
 
 

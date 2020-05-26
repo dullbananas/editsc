@@ -14,6 +14,7 @@ import World exposing (World)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Region as Region
+import Element.Font as Font
 import Html exposing (Html)
 
 
@@ -118,59 +119,68 @@ view model =
                 }
             ]
         }
-        []
+        [ height fill
+        , width fill
+        --, explain Debug.todo
+        , id "ui"
+        , clipY
+        ]
         ( body model )
+
+
+uiAttrs : Theme -> List (Attribute Msg)
+uiAttrs theme =
+    [ id "inspector"
+    , alignRight
+    ] ++ box theme
 
 
 body : Model -> Element Msg
 body model =
     column
-        [ width fill
-        , height fill
-        , paddingXY 16 16
+        [ height fill
+        , paddingXY 12 12
+        , alignRight
+        , alignTop
+        , width <| maximum 384 fill
+        , spacing 4
+        , clipY
         ]
 
         [ case model.currentTab of
             Collapsed ->
-                el
-                    (
-                    [ id "inspector"
-                    , alignTop
-                    , alignRight
-                    , width <| maximum 400 fill
-                    ] ++ box model.theme )
+                column
+                    ( {-explain Debug.todo ::-} uiAttrs model.theme )
 
-                    ( tabButtonRow <| inspectorButtons model )
+                    [ tabButtonRow <| inspectorButtons model ]
 
             _ ->
                 column
                 (
-                [ spacing 16
-                , alignTop
-                , alignRight
-                , width <| maximum 400 fill
-                , id "inspector"
-                ] ++ box model.theme )
+                    [ spacing 8
+                    , width fill
+                    , height <| maximum 384 fill
+                    , clipY
+                    ] ++ uiAttrs model.theme
+                )
 
                 [ tabButtonRow <| inspectorButtons model
                 , column
                     [ spacing 16
-                    , height fill
+                    --, height fill
+                    , width fill
+                    , scrollbarY
                     ]
                     ( viewInspector model )
                 ]
+
+        , el
+            [ Font.color ( rgb 255 255 255 )
+            , fontFamily
+            , Font.size 14
+            ]
+            ( text model.jsInfo )
         ]
-        {-[ panel
-            (
-                [ alignRight
-                , alignBottom
-                , fill |> maximum 400 |> width
-                , fill |> height
-                ]
-            )
-            ( inspectorButtons model.currentTab )
-            ( viewInspector model )
-        ]-}
 
 
 viewInspector : Model -> List ( Element Msg )
@@ -181,8 +191,7 @@ viewInspector model =
 
         DebugView ->
             [ heading H1 "Debug view"
-            , bodyText <| model.jsInfo
-            --, bodyText <| Debug.toString model.world
+            , bodyText <| Debug.toString model.world
             ]
 
         Saver { fileName } ->

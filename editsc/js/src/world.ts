@@ -83,8 +83,16 @@ export function countFullBlocks(blocks: Uint32Array): number {
 }
 
 
-export function isFullBlock(block: number): boolean {
-	return getBlockType(block) != 0;
+export function isFullBlock(b: number): boolean {
+	return !(
+	typeIs(b, 0) // air
+	|| typeIs(b, 18) // water
+	);
+}
+
+
+function typeIs(block: number, id: number): boolean {
+	return getBlockType(block) === id;
 }
 
 
@@ -93,6 +101,6 @@ export function getBlockIndex(x: number, y: number, z: number): number {
 }
 
 
-function getBlockType(block: number): number {
+export function getBlockType(block: number): number {
 	return block & 0b1111111111;
 }

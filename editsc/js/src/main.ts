@@ -101,15 +101,16 @@ app.ports.parseChunks.subscribe(function(): void {
 						app.ports.chunksReady.send(null);
 						// Editor is now ready to start; importing is done.
 						// Start 3D rendering
+						rendering.updateSize();
 						rendering.renderLoop();
 						rendering.startKeyEvents();
 						rendering.initCameraPosition();
+						rendering.currentKeys.add("updating");
 						for (let chunk of world.chunks) {
 							rendering.renderChunk(chunk);
-							rendering.forceRenderFrame();
 						}
-						console.log(world);
-						console.log(rendering.scene);
+						rendering.currentKeys.delete("updating");
+						rendering.forceRenderFrame();
 				}
 			};
 		});
@@ -118,15 +119,6 @@ app.ports.parseChunks.subscribe(function(): void {
 
 
 app.ports.saveWorld.subscribe(function(arg: {fileName: string, xml: string}): void {
-	/*zip.createWriter(new zip.BlobWriter(), function(writer: any): void {
-		// Write Project.xml
-		writer.add('Project.xml', new zip.TextReader(arg.xml), function(): void {
-			// Download
-			writer.close(function(blob: Blob): void {
-				download(blob, arg.fileName, 'application/zip');
-			}); // So
-		}); // Many
-	}); // Stupid*/
 	let zip = new JSZip();
 	const rootDir: string = arg.fileName.split(".")[0] + "/";
 
