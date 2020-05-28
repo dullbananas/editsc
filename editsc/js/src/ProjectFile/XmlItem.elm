@@ -7,10 +7,12 @@ module ProjectFile.XmlItem exposing
     , extractValue
     , queryItem
     , query
+    , queryValues
     , thenQuery
 
     , val
     , vals
+
 
     , int
     , long
@@ -156,6 +158,16 @@ query valueType path xmlItems =
     case queryItem path xmlItems of
         Just (OneValue value) ->
             valueType.fromString value.value |> Result.fromMaybe (QueryError path)
+        _ ->
+            Err <| QueryError path
+
+
+queryValues : List String -> List XmlItem -> Result ConversionError Values
+queryValues path xmlItems =
+    case queryItem path xmlItems of
+        Just (MultiValues values) ->
+            Ok values
+
         _ ->
             Err <| QueryError path
 

@@ -16,8 +16,8 @@ import World.WorldConfig as WorldConfig exposing (WorldConfig)
 import World.WorldState as WorldState exposing (WorldState)
 import World.Entity as Entity exposing (Entity)
 import GameTypes exposing (..)
-import ProjectFile exposing (ProjectFile)
-import ProjectFile.XmlItem as X exposing (val, vals, query)
+import ProjectFile exposing (ProjectFile, ProjectEntity)
+import ProjectFile.XmlItem as X exposing (val, vals, query, queryValues)
 import ConversionError exposing (ConversionError(..))
 
 
@@ -27,6 +27,8 @@ type alias World =
     , config : WorldConfig
     , state : WorldState
     , originalVersion : GameVersion
+    , entities : List ProjectEntity
+    , playerStats : List X.XmlItem
     --, entities : List (Entity {})
     --, blockData : List BlockDataEntry
     }
@@ -40,6 +42,8 @@ fromProjectFile projectFile =
         |> ResultE.andMap (WorldConfig.fromProjectFile projectFile)
         |> ResultE.andMap (WorldState.fromProjectFile projectFile)
         |> ResultE.andMap (query X.gameVersion ["GameInfo","OriginalSerializationVersion"] projectFile.subsystems)
+        |> ResultE.andMap (Ok projectFile.entities)
+        |> ResultE.andMap (queryValues ["PlayerStats","Stats"] projectFile.subsystems |> Result.map .children)
 
 
 fromXmlString : String -> Result ConversionError World
@@ -98,9 +102,13 @@ toProjectFile world =
             , val X.double "WeatherEndTime" world.state.weather.endTime
             , val X.float "LightningIntensity" world.state.weather.lightningIntensity
             ]
+        , vals "PlayerStats" [ vals "Stats" world.playerStats ]
+        , vals "Players"
+            [ val X.vector3 "GlobalSpawnPosition" world.config.globalSpawn
+            ]
         ]
 
-    , entities = []
+    , entities = world.entities
     , version = GameVersion.toString world.currentVersion
     , guid = world.guid
     }

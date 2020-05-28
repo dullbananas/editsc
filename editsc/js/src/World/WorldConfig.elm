@@ -23,6 +23,7 @@ type alias WorldConfig =
     , adventureSurvivalMechanics : Bool
     , startPositionMode : StartingPositionMode
     , textureFileName : String
+    , globalSpawn : Vector3
     , environment : EnvironmentSettings
     , terrain : TerrainSettings
     , colorPalette : List PaletteEntry
@@ -38,6 +39,7 @@ fromProjectFile { subsystems } =
         |> thenQuery X.bool ["GameInfo", "AreAdventureSurvivalMechanicsEnabled"] subsystems
         |> thenQuery X.startingPositionMode ["GameInfo", "StartingPositionMode"] subsystems
         |> thenQuery X.string ["GameInfo", "BlockTextureName"] subsystems
+        |> thenQuery X.vector3 ["Players", "GlobalSpawnPosition"] subsystems
         |> ResultE.andMap (environmentSettingsFromSubsystems subsystems)
         |> ResultE.andMap (terrainSettingsFromSubsystems subsystems)
         |> ResultE.andMap (colorPaletteFromSubsystems subsystems)
