@@ -24,13 +24,24 @@ import Html exposing (Html)
 
 type alias Model =
     { world : World
-    , currentTab : Tab
+    , uiVisibility : Visibility
     , theme : Theme
-    , jsInfo : String
+    , menu : Menu
+    --, jsInfo : String
     }
 
 
-type Tab
+type Menu
+    = MainMenu
+    | SaveWorld { fileName : String }
+
+
+type Visibility
+    = Collapsed
+    | Expanded
+
+
+{-type Tab
     = Collapsed
     | DebugView
     | Saver SaverModel
@@ -44,7 +55,7 @@ type alias SaverModel =
 initSaver : SaverModel
 initSaver =
     { fileName = "name.scworld"
-    }
+    }-}
 
 
 -- Init
@@ -53,9 +64,9 @@ initSaver =
 init : World -> Model
 init world =
     { world = world
-    , currentTab = Collapsed
+    , uiVisibility = Collapsed
     , theme = Light
-    , jsInfo = "no info"
+    , menu = MainMenu
     }
 
 
@@ -64,33 +75,45 @@ init world =
 
 
 type Msg
-    = SwitchTab Tab
-    | ChangeSaveName String
-    | SaveWorld String
-    | GotJsInfo String
+    = ToggleUi Visibility
+    | UpdateMenu Menu
+    | SaveWorldMsg String
+    --= SwitchTab Tab
+    --| ChangeSaveName String
+    --| GotJsInfo String
 
 
 update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
     case msg of
-        SwitchTab tab ->
-            ( { model | currentTab = tab }, Cmd.none )
-
-        ChangeSaveName fileName ->
-            ( { model | currentTab = Saver { initSaver | fileName = fileName } }
+        ToggleUi visibility ->
+            ( { model | uiVisibility = visibility }
             , Cmd.none
             )
 
-        SaveWorld fileName ->
+        UpdateMenu menu ->
+            ( { model | menu = menu }
+            , Cmd.none
+            )
+
+        SaveWorldMsg fileName ->
             ( model
             , Port.saveWorld
                 { fileName = fileName
                 , xml = World.toXmlString model.world
                 }
             )
+        --SwitchTab tab ->
+            --( { model | currentTab = tab }, Cmd.none )
 
-        GotJsInfo string ->
-            ( { model | jsInfo = string }, Cmd.none )
+        {-ChangeSaveName fileName ->
+            ( { model | currentTab = Saver { initSaver | fileName = fileName } }
+            , Cmd.none
+            )
+
+
+        --GotJsInfo string ->
+            --( { model | jsInfo = string }, Cmd.none )-}
 
 
 
@@ -100,7 +123,7 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Port.jsInfo GotJsInfo
+        [-- Port.jsInfo GotJsInfo
         ]
 
 
@@ -120,8 +143,6 @@ view model =
             ]
         }
         [ height fill
-        , width fill
-        --, explain Debug.todo
         , id "ui"
         , clipY
         ]
@@ -130,62 +151,130 @@ view model =
 
 uiAttrs : Theme -> List (Attribute Msg)
 uiAttrs theme =
-    [ id "inspector"
-    , alignRight
+    [ alignRight
     ] ++ box theme
+
+
+type alias InspectorView =
+    { back : Maybe Menu
+    , body : List (Element Msg)
+    }
 
 
 body : Model -> Element Msg
 body model =
     column
         [ height fill
-        , paddingXY 12 12
+        , paddingXY 16 16
         , alignRight
         , alignTop
-        , width <| maximum 384 fill
+        , width <| maximum (512-128-64) fill
         , spacing 4
-        , clipY
         ]
 
-        [ case model.currentTab of
+        [ case model.uiVisibility of
             Collapsed ->
                 column
                     ( {-explain Debug.todo ::-} uiAttrs model.theme )
 
-                    [ tabButtonRow <| inspectorButtons model ]
+                    [ button
+                        model.theme
+                        { btn | iconName = "caret-down" }
+                        ( ToggleUi Expanded )
+                    ]
 
-            _ ->
+            Expanded ->
+                let
+                    inspectorView : InspectorView
+                    inspectorView =
+                        viewInspector model
+
+                    back : List (Element Msg)
+                    back =
+                        case inspectorView.back of
+                            Nothing ->
+                                []
+
+                            Just parent ->
+                                List.singleton <| backButton
+                                    ( menuTitle parent )
+                                    ( UpdateMenu parent )
+
+                in
+
                 column
                 (
                     [ spacing 8
                     , width fill
                     , height <| maximum 384 fill
-                    , clipY
-                    ] ++ uiAttrs model.theme
-                )
-
-                [ tabButtonRow <| inspectorButtons model
-                , column
-                    [ spacing 16
-                    --, height fill
-                    , width fill
                     , scrollbarY
-                    ]
-                    ( viewInspector model )
-                ]
+                    ] ++ uiAttrs model.theme
+                ) <|
 
-        , el
-            [ Font.color ( rgb 255 255 255 )
-            , fontFamily
-            , Font.size 14
-            ]
-            ( text model.jsInfo )
+                [ row
+                    [ width fill
+                    ]
+
+                    [ heading H1 <| menuTitle model.menu
+                    , el [ alignRight, alignTop ]
+                        ( button
+                            model.theme
+                            { btn | iconName = "caret-up" }
+                            ( ToggleUi Collapsed )
+                        )
+                    ]
+
+                ] ++ back ++
+                [ column
+                    [ spacing 16
+                    , width fill
+                    ]
+
+                    ( inspectorView.body )
+                ]
         ]
 
 
-viewInspector : Model -> List ( Element Msg )
+menuTitle : Menu -> String
+menuTitle menu =
+    case menu of
+        MainMenu ->
+            "Main Menu"
+
+        SaveWorld _ ->
+            "Save World"
+
+
+viewInspector : Model -> InspectorView
 viewInspector model =
-    case model.currentTab of
+    case model.menu of
+        MainMenu ->
+            { back = Nothing
+            , body =
+                [ button
+                    model.theme
+                    { btn | iconName = "file-download", label = "Save world..." }
+                    ( UpdateMenu <| SaveWorld
+                        { fileName = model.world.config.worldName ++ ".scworld" }
+                    )
+                ]
+            }
+
+        SaveWorld { fileName } ->
+            { back = Just MainMenu
+            , body =
+                [ textInput
+                    { txt | content = fileName, name = "Filename" }
+                    ( \newName ->
+                        UpdateMenu <| SaveWorld { fileName = newName }
+                    )
+                , button
+                    model.theme
+                    { btn | iconName = "file-download", label = "Save" }
+                    ( SaveWorldMsg fileName )
+                ]
+            }
+    {-case model.currentTab of
         Collapsed ->
             []
 
@@ -196,17 +285,14 @@ viewInspector model =
 
         Saver { fileName } ->
             [ heading H1 "Save world"
-            , textInput
-                { txt | content = fileName, name = "Filename" }
-                ChangeSaveName
             , button
                 model.theme
                 { btn | iconName = "file-download", label = "Save" }
                 ( SaveWorld fileName )
-            ]
+            ]-}
 
 
-inspectorButtons : Model -> List ( Element Msg )
+{-inspectorButtons : Model -> List ( Element Msg )
 inspectorButtons model =
     let
         currentIndex : Int
@@ -234,4 +320,4 @@ tabButton theme currentIndex iconName initTab index =
         | iconName = iconName
         , active = ( index == currentIndex )
         }
-        ( SwitchTab initTab )
+        ( SwitchTab initTab )-}

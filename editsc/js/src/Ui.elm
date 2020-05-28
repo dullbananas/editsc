@@ -2,6 +2,7 @@ module Ui exposing
     ( heading
     , bodyText
     , bodyLink
+    , backButton
     , fileInput
     , button
     , icon
@@ -44,7 +45,7 @@ heading level content =
     let
         ( size, levelInt ) =
             case level of
-                H1 -> ( 32, 1 )
+                H1 -> ( 28, 1 )
 
     in
         el
@@ -77,6 +78,17 @@ bodyLink label url =
         , Font.color blue
         ]
         [ link [] { url = url, label = text label } ]
+
+
+backButton : String -> msg -> Element msg
+backButton label msg =
+    el
+        [ fontFamily
+        , Font.size 16
+        , Font.color blue
+        , Event.onClick msg
+        ]
+        ( text <| "< " ++ label )
 
 
 fileInput : String -> Element msg
@@ -167,15 +179,18 @@ box : Theme -> List ( Attribute msg )
 box theme =
     [ fontFamily
     , Background.color <| neuBackground theme
-    , Border.rounded 34
-    , paddingXY 13 13
-    , Border.shadow
+    --, Border.rounded 34
+    --, paddingXY 13 13
+    , Border.rounded 18
+    , paddingXY 12 12
+    {-, Border.shadow
         { offset = ( 0, 0 )
         , size = 0
         , blur = 8
         , color = rgba255 0 0 0 0.2
-        }
-    , alpha 0.9
+        }-}
+    --, alpha 0.95
+    --, htmlAttribute <| HtmlAttr.style "-webkit-backdrop-filter" "blur(10px) !important"
     ]
 
 
@@ -183,9 +198,13 @@ textInput : TextInput -> ( String -> msg ) -> Element msg
 textInput { content, name } onChange =
     Input.text
         [ fontFamily
-        , Background.color maxWhite
-        , Border.rounded 24
+        --, Background.color maxWhite
+        , Background.color ( neuForeground Light )
+        , Border.rounded 8
         , Border.width 0
+        --, Font.color gray
+        , Font.size 16
+        , outset Light
         ]
         { onChange = onChange
         , text = content
@@ -225,37 +244,37 @@ neuBackground : Theme -> Color
 neuBackground theme =
     case theme of
         Light ->
-            rgb255 235 235 235
+            rgba255 245 245 245 0.95
 
 
 neuForeground : Theme -> Color
 neuForeground theme =
     case theme of
         Light ->
-            rgb255 242 242 242
+            rgb255 255 255 255
 
 
-neuShadowLight : Theme -> Color
+{-neuShadowLight : Theme -> Color
 neuShadowLight theme =
     case theme of
         Light ->
-            rgb255 255 255 255
+            rgb255 255 255 255-}
 
 
 neuShadowDark : Theme -> Color
 neuShadowDark theme =
     case theme of
         Light ->
-            rgb255 230 230 230
+            rgb255 235 235 235
 
 
 
 -- Foreground/misc colors
 
 
-maxWhite : Color
+{-maxWhite : Color
 maxWhite =
-    rgb255 255 255 255
+    rgb255 255 255 255-}
 
 
 blue : Color
@@ -274,7 +293,13 @@ gray =
 
 outset : Theme -> Attribute msg
 outset theme =
-    multiShadows
+    Border.shadow
+        { offset = ( 3, 3 )
+        , size = 0
+        , blur = 3
+        , color = neuShadowDark theme
+        }
+    {-multiShadows
         [
             { offset = ( 3, 3 )
             , blur = 3
@@ -289,7 +314,7 @@ outset theme =
             , color = neuShadowLight theme
             , inset = False
             }
-        ]
+        ]-}
 
 
 {-inset : Attribute msg

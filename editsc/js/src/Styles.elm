@@ -34,4 +34,8 @@ main =
             , top zero
             , left zero
             ]
+
+        , everything
+            [ touchAction none
+            ]
         ]

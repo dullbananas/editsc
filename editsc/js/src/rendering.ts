@@ -10,7 +10,7 @@ import * as world from './world';
 
 export let scene = new THREE.Scene();
 
-scene.background = new THREE.Color(0x000000);
+scene.background = new THREE.Color(0xf5f5f5);
 scene.autoUpdate = true;
 scene.frustumCulled = false;
 
@@ -26,7 +26,10 @@ let camera = new THREE.PerspectiveCamera(
 let renderer = new THREE.WebGLRenderer({
 	canvas: document.getElementById('world-canvas') as HTMLCanvasElement,
 	stencil: false,
+	antialias: true,
+	powerPreference: 'low-power',
 });
+const pixelDensity: number = Math.trunc(window.devicePixelRatio);
 
 
 
@@ -38,7 +41,7 @@ let texture = textureLoader.load("../static/blocks.png");
 texture.repeat.x = 1/16;
 texture.repeat.y = 1/16;
 texture.offset.x = 2/16;
-texture.offset.y = 15/16;
+texture.offset.y = 14/16;
 texture.magFilter = THREE.NearestFilter; // Give textures pixelated appearance
 
 let material = new THREE.MeshLambertMaterial({
@@ -47,12 +50,12 @@ let material = new THREE.MeshLambertMaterial({
 
 
 // Lights & fog
-const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.8);
-const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.2);
+const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.0);
+const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.1);
 directionalLight.target = new THREE.Object3D();
 //directionalLight.target.position.set(2, -1, 4);
 scene.add(ambientLight, directionalLight.target, directionalLight);
-scene.fog = new THREE.Fog(0x000000, 96, 128);
+scene.fog = new THREE.Fog(0xf5f5f5, 96, 128);
 
 
 function addVoxel(
@@ -184,22 +187,19 @@ function renderFrame() {
 	if (currentKeys.size != 0) {
 		camera.updateProjectionMatrix();
 		forceRenderFrame();
-		main.app.ports.jsInfo.send(
-			Math.round(camera.position.x)
-			+ ", "
-			+ Math.round(-camera.position.z)
-		);
 	}
 }
 
 
 // FPS counter
-let frames = 0;
+//let frames = 0;
 let fps = 0;
-window.setInterval(function() {
+let millisPerFrame = 0;
+let lastRenderTime = Date.now(); // when the last frame was rendered
+/*window.setInterval(function() {
 	fps = frames * 10;
 	frames = 0;
-}, 100);
+}, 100);*/
 
 
 export function forceRenderFrame() {
@@ -218,20 +218,30 @@ export function forceRenderFrame() {
 export function renderLoop() {
 	requestAnimationFrame(renderLoop);
 	renderFrame();
-	frames++;
+	millisPerFrame = Date.now() - lastRenderTime;
+	lastRenderTime = Date.now();
+	fps = 1000 / millisPerFrame;
 }
 
 
 export function updateSize() {
-	renderer.setSize(window.innerWidth, window.innerHeight);
+	const PreventStyleChange = false;
+
+	const width: number = window.innerWidth * pixelDensity;
+	const height: number = window.innerHeight * pixelDensity;
+	renderer.setSize(width, height, PreventStyleChange);
 	camera.aspect = window.innerWidth / window.innerHeight;
+
 	camera.updateProjectionMatrix();
 	forceRenderFrame();
 	window.scrollTo(0, 0);
-	//document.getElementById('ui-wrapper')!.style.height = window.innerHeight + "px";
 	document.body.style.height = window.innerHeight + "px";
 }
-window.onresize = updateSize;
+
+window.onresize = function() {
+	updateSize();
+	window.setTimeout(updateSize, 500);
+};
 
 
 
@@ -255,7 +265,6 @@ export function startKeyEvents() {
 				camera.rotateX(Math.PI/8);
 			}
 		}
-		console.log(currentKeys);
 	};
 
 	document.body.onkeyup = function(event) {
