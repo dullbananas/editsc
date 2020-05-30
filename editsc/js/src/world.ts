@@ -1,86 +1,115 @@
+const LittleEndian = true;
+
+
 export class World {
-	chunks: Array<Chunk>;
+	private chunks: Array<Chunk>;
+	arrayBuffer: ArrayBuffer;
 
 
-	constructor(struct: any | null) {
-		switch (struct) {
+	constructor(arrayBuffer: ArrayBuffer | null) {
+		this.chunks = [];
+
+		switch (arrayBuffer) {
 			case null:
-				this.chunks = [];
+				this.arrayBuffer = new ArrayBuffer(0);
 				break;
 
 			default:
-				this.chunks = struct.chunks.map(
-					function(chunkStruct: any, index: number) {
-						return new Chunk(chunkStruct, index);
-					}
-				);
+				this.arrayBuffer = arrayBuffer;
+				if ( ((arrayBuffer.byteLength - 786444) % 263184 ) != 0 ) {
+					throw "Invalid world byte length: " + arrayBuffer.byteLength;
+				}
+
+				const chunkCount = (arrayBuffer.byteLength - 786444) / 263184;
+				console.log("chunk count=" + chunkCount);
+				for (let i = 0; i < chunkCount; i++) {
+					const offset = 786444 + (i * 263184);
+					let newChunk = new Chunk(
+						new DataView(this.arrayBuffer, offset, 263184)
+					);
+					this.chunks.push(newChunk);
+				}
 		}
+	}
+
+
+	chunkCount(): number {
+		return this.chunks.length;
+	}
+
+
+	getChunk(i: number): Chunk | undefined {
+		return this.chunks[i];
 	}
 }
 
 
 
 export class Chunk {
-	index: number;
 	x: number;
 	z: number;
-	surface: SurfacePoint[];
-	blocks: Uint32Array;
+	view: DataView; // References part of the world's ArrayBuffer
 
 
-	constructor(struct: any, index: number) {
-		this.index = index;
-		this.x = struct.header.xPosition;
-		this.z = struct.header.zPosition;
-		this.surface = struct.surface.map(
-			function(surfacePoint: any, spIndex: number) {
-				return new SurfacePoint(surfacePoint, spIndex);
-			}
+	getBlock(index: number): number | undefined {
+		return this.view.getUint32(
+			16 // Header size
+			+ (4 * index)
+
+			, LittleEndian
 		);
-		this.blocks = Uint32Array.from(struct.blocks);
+	}
+
+
+	// Count the number of blocks that satisfy a condition.
+	count(condition: (block: number) => boolean): number {
+		let result = 0;
+		for (let i = 0; i < 65536; i++) {
+			if (condition(this.getBlock(i)!)) {
+				result++;
+			}
+		}
+		return result;
+	}
+
+
+	constructor(view: DataView) {
+		this.view = view;
+
+		// Magic numbers
+		let magicNums = [
+			this.view.getUint32(0, LittleEndian),
+			this.view.getUint32(4, LittleEndian),
+		];
+		const correctNums = [0xDEADBEEF, 0xFFFFFFFE];
+		if (magicNums[0] != correctNums[0] || magicNums[1] != correctNums[1]) {
+			throw "These magic numbers are incorrect: "
+			+ magicNums[0]
+			+ ", "
+			+ magicNums[1];
+			+ "; Correct numbers: "
+			+ correctNums[0]
+			+ ", "
+			+ correctNums[1]
+		}
+
+		// Coordinates
+		this.x = view.getInt32(8, LittleEndian);
+		this.z = view.getInt32(12, LittleEndian);
 	}
 }
 
 
 
-export class SurfacePoint {
-	index: number;
-	maxHeight: number;
-	tempHumidity: number;
-
-
-	constructor(struct: any, index: number) {
-		this.index = index;
-		this.maxHeight = struct.maxheight;
-		this.tempHumidity = struct.tempHumidity;
+/*export function countFullBlocks(chunk: Chunk): number {
+	let result = 0;
+	for (let i = 0; i < 65536; i++) {
+		if (isFullBlock(chunk.getBlock(i)!)) {
+			result++;
+		}
 	}
-}
-
-
-
-// Combines multiple Uint8Array objects to a single Uint8Array
-function combineArrays(arrays: Uint8Array[]): Uint8Array {
-	let totalLength = arrays.reduce(
-		(acc: number, value: Uint8Array) => acc + value.length, 0
-	);
-	let result: Uint8Array = new Uint8Array(totalLength);
-
-	let position = 0;
-	for (let array of arrays) {
-		result.set(array, position);
-		position += array.length;
-	}
-
 	return result;
-}
-
-
-export function countFullBlocks(blocks: Uint32Array): number {
-	return blocks.filter(
-		(block: number, index: number, arr: Uint32Array) =>
-			isFullBlock(block)
-	).length;
-}
+}*/
 
 
 export function isFullBlock(b: number): boolean {

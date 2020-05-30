@@ -85,8 +85,7 @@ export function renderChunk(chunk: world.Chunk) {
 	// Used to hold the matrix that will be applied to objects
 	let transform = new THREE.Object3D();
 
-	const blockCount: number = world.countFullBlocks(chunk.blocks);
-	//totalBlockCount += blockCount;
+	const blockCount: number = chunk.count(world.isFullBlock);
 	let voxelGeometry = new THREE.BoxBufferGeometry(1, 1, 1);
 	let mesh = new THREE.InstancedMesh(voxelGeometry, material, blockCount);
 	mesh.frustumCulled = false;
@@ -95,7 +94,7 @@ export function renderChunk(chunk: world.Chunk) {
 	for (let x = 0; x < 16; x++) {
 	for (let y = 0; y < 256; y++) {
 	for (let z = 0; z < 16; z++) {
-		const block: number = chunk.blocks[world.getBlockIndex(x, y, z)]!;
+		const block: number = chunk.getBlock(world.getBlockIndex(x, y, z))!;
 
 		if (world.isFullBlock(block)) {
 			// These 2 lines of code are a result of painful trial and error.
@@ -113,12 +112,20 @@ export function renderChunk(chunk: world.Chunk) {
 			meshIndex++;
 		}
 	}}}
-	scene.add(mesh);
+
+	let group = new THREE.Group();
+	group.add(mesh);
+	scene.add(group);
+
+	if(!chunkGroups[chunk.x]) {
+		chunkGroups[chunk.x] = {};
+	}
+	chunkGroups[chunk.x]![chunk.z] = group;
 }
 
 
 export function initCameraPosition() {
-	const chunk = main.world.chunks[0];
+	const chunk = main.world.getChunk(0);
 
 	if (chunk) {
 		const x = chunk.x * 16;
@@ -240,7 +247,9 @@ export function updateSize() {
 
 window.onresize = function() {
 	updateSize();
-	window.setTimeout(updateSize, 500);
+
+	// This is needed to make sure the size is correct
+	window.setTimeout(updateSize, 100);
 };
 
 
@@ -271,3 +280,8 @@ export function startKeyEvents() {
 		currentKeys.delete(event.key.toLowerCase());
 	};
 };
+
+
+
+forceRenderFrame();
+updateSize();

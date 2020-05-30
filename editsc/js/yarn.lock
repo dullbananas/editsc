@@ -1918,11 +1918,6 @@ jszip@^3.3.0:
     readable-stream "~2.3.6"
     set-immediate-shim "~1.0.1"
 
-kaitai-struct@^0.8.0-SNAPSHOT.11:
-  version "0.8.0-SNAPSHOT.11"
-  resolved "https://registry.yarnpkg.com/kaitai-struct/-/kaitai-struct-0.8.0-SNAPSHOT.11.tgz#33236a29981021de119019d0aa87e20ed1c1abc9"
-  integrity sha512-KvwMkEJt6B9/5qwLSz6DoNge+aT9B2oyKXldbeZVeNl2c/BgpRuEIuVrEHJ/iSKp4H5IrjdMZTCtFrYFsn1R1g==
-
 kind-of@^3.0.2, kind-of@^3.0.3, kind-of@^3.2.0:
   version "3.2.2"
   resolved "https://registry.yarnpkg.com/kind-of/-/kind-of-3.2.2.tgz#31ea21a734bab9bbb0f32466d893aea51e4a3c64"

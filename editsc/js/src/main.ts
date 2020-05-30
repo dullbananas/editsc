@@ -1,11 +1,7 @@
 const JSZip = require('jszip');
-const Chunks32h = require('./Chunks32h');
-const KaitaiStream = require('kaitai-struct/KaitaiStream');
 const download = require('downloadjs');
 import {World} from './world';
 import * as rendering from './rendering';
-
-//zip.workerScriptsPath = '/zipjs/';
 
 
 
@@ -76,8 +72,8 @@ app.ports.extractZip.subscribe(function(): void {
 
 app.ports.parseChunks.subscribe(function(): void {
 	if (chunksFileEntry) {
-		chunksFileEntry.async('blob').then(function(blob: Blob): void {
-			let fileReader = new FileReader();
+		chunksFileEntry.async('arraybuffer').then(function(arrayBuffer: ArrayBuffer) {
+			/*let fileReader = new FileReader();
 			fileReader.readAsArrayBuffer(blob);
 			fileReader.onload = function(event: Event) {
 				let arrayBuffer: ArrayBuffer = (fileReader.result! as ArrayBuffer);
@@ -87,32 +83,43 @@ app.ports.parseChunks.subscribe(function(): void {
 						return new Chunks32h(kaitaiStream);
 					}
 					catch (e) {
+						console.error(e);
 						return undefined;
 					}
-				})();
-
-				switch (typeof chunksStruct) {
-					case 'undefined':
-						app.ports.chunksError.send("Invalid data in chunks file; it might be corrupted");
-						break;
-
-					default:
-						world = new World(chunksStruct);
-						app.ports.chunksReady.send(null);
-						// Editor is now ready to start; importing is done.
-						// Start 3D rendering
-						rendering.updateSize();
-						rendering.renderLoop();
-						rendering.startKeyEvents();
-						rendering.initCameraPosition();
-						rendering.currentKeys.add("updating");
-						for (let chunk of world.chunks) {
-							rendering.renderChunk(chunk);
-						}
-						rendering.currentKeys.delete("updating");
-						rendering.forceRenderFrame();
+				})();*/
+			let newWorld = (function(): World | undefined {
+				try {
+					return new World(arrayBuffer)
 				}
-			};
+				catch(e) {
+					console.error(e);
+					return undefined;
+				}
+			})();
+
+			if (newWorld) {
+				world = newWorld!;
+				//world = new World(chunksStruct);
+				app.ports.chunksReady.send(null);
+				// Editor is now ready to start; importing is done.
+				// Start 3D rendering
+				rendering.updateSize();
+				rendering.renderLoop();
+				rendering.startKeyEvents();
+				rendering.initCameraPosition();
+				rendering.currentKeys.add("updating");
+				for (let i = 0; i < world!.chunkCount(); i++) {
+					rendering.renderChunk(world!.getChunk(i)!);
+				}
+				/*for (let chunk of world.chunks) {
+					rendering.renderChunk(chunk);
+				}*/
+				rendering.currentKeys.delete("updating");
+				rendering.forceRenderFrame();
+			}
+			else {
+				app.ports.chunksError.send("Invalid data in chunks file; it might be corrupted");
+			}
 		});
 	}
 });
@@ -123,6 +130,8 @@ app.ports.saveWorld.subscribe(function(arg: {fileName: string, xml: string}): vo
 	const rootDir: string = arg.fileName.split(".")[0] + "/";
 
 	zip.file(rootDir+"Project.xml", arg.xml);
+	//zip.file(rootDir+"Chunks32h.dat", world.makeArrayBuffer());
+	zip.file(rootDir+"Chunks32h.dat", world.arrayBuffer);
 
 	zip.generateAsync({type:'blob'}).then(function(blob: Blob) {
 		download(blob, arg.fileName, "application/zip");

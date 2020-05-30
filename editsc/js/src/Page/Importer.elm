@@ -27,8 +27,8 @@ import Html exposing (Html)
 type Model
     = NothingImported -- Before the import button is pressed
     | Extracting -- Waiting for zip to be extracted by JavaScript
-    | WaitingForChunks World -- Waiting for chunks file to be parsed by JavaScript
-    | SwitchToEditor World -- Used to tell Main module to switch to the editor page
+    | WaitingForChunks String -- Waiting for chunks file to be parsed by JavaScript
+    | SwitchToEditor String -- Used to tell Main module to switch to the editor page
     | Error String
 
 
@@ -66,11 +66,12 @@ update msg model =
             ( Extracting, Port.extractZip () )
 
         GotProjectFile content ->
-            case World.fromXmlString content of
+            {-case World.fromXmlString content of
                 Ok world ->
                     ( WaitingForChunks world, Port.parseChunks () )
                 Err error ->
-                    ( Error <| "Could not read project file: " ++ ConversionError.toString error, Cmd.none )
+                    ( Error <| "Could not read project file: " ++ ConversionError.toString error, Cmd.none )-}
+            ( WaitingForChunks content, Port.parseChunks () )
 
         ChunksReady ->
             case model of
@@ -80,7 +81,7 @@ update msg model =
                     ( model, Cmd.none )
 
 
-willSwitchToEditor : Model -> Maybe World
+willSwitchToEditor : Model -> Maybe String
 willSwitchToEditor model =
     case model of
         SwitchToEditor world ->

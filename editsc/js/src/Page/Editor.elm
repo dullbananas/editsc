@@ -23,7 +23,7 @@ import Html exposing (Html)
 
 
 type alias Model =
-    { world : World
+    { world : String
     , uiVisibility : Visibility
     , theme : Theme
     , menu : Menu
@@ -61,7 +61,7 @@ initSaver =
 -- Init
 
 
-init : World -> Model
+init : String -> Model
 init world =
     { world = world
     , uiVisibility = Collapsed
@@ -100,7 +100,8 @@ update msg model =
             ( model
             , Port.saveWorld
                 { fileName = fileName
-                , xml = World.toXmlString model.world
+                --, xml = World.toXmlString model.world
+                , xml = model.world
                 }
             )
         --SwitchTab tab ->
@@ -255,7 +256,8 @@ viewInspector model =
                     model.theme
                     { btn | iconName = "file-download", label = "Save world..." }
                     ( UpdateMenu <| SaveWorld
-                        { fileName = model.world.config.worldName ++ ".scworld" }
+                        --{ fileName = model.world.config.worldName ++ ".scworld" }
+                        { fileName = "World.scworld" }
                     )
                 ]
             }
