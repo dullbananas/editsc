@@ -1,7 +1,10 @@
 const JSZip = require('jszip');
 const download = require('downloadjs');
+
 import {World} from './world';
 import * as rendering from './rendering';
+import {blockTypes} from './blockType';
+import * as blockType from './blockType';
 
 
 
@@ -87,7 +90,7 @@ app.ports.parseChunks.subscribe(function(): void {
 						return undefined;
 					}
 				})();*/
-			let newWorld = (function(): World | undefined {
+			/*let newWorld = (function(): World | undefined {
 				try {
 					return new World(arrayBuffer)
 				}
@@ -95,11 +98,11 @@ app.ports.parseChunks.subscribe(function(): void {
 					console.error(e);
 					return undefined;
 				}
-			})();
+			})();*/
 
-			if (newWorld) {
-				world = newWorld!;
-				//world = new World(chunksStruct);
+			try {
+				//world = newWorld!;
+				world = new World(arrayBuffer);
 				app.ports.chunksReady.send(null);
 				// Editor is now ready to start; importing is done.
 				// Start 3D rendering
@@ -108,8 +111,10 @@ app.ports.parseChunks.subscribe(function(): void {
 				rendering.startKeyEvents();
 				rendering.initCameraPosition();
 				rendering.currentKeys.add("updating");
-				for (let i = 0; i < world!.chunkCount(); i++) {
-					rendering.renderChunk(world!.getChunk(i)!);
+				for (let i = 0; i < world.chunkCount(); i++) {
+					blockTypes.forEach(function(btype) {
+						rendering.renderChunk(world.getChunk(i)!, btype);
+					});
 				}
 				/*for (let chunk of world.chunks) {
 					rendering.renderChunk(chunk);
@@ -117,8 +122,9 @@ app.ports.parseChunks.subscribe(function(): void {
 				rendering.currentKeys.delete("updating");
 				rendering.forceRenderFrame();
 			}
-			else {
+			catch (e) {
 				app.ports.chunksError.send("Invalid data in chunks file; it might be corrupted");
+				console.error(e);
 			}
 		});
 	}

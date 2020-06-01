@@ -2,6 +2,9 @@ import * as THREE from 'three';
 
 import * as main from './main';
 import * as world from './world';
+import * as geometry from './geometry';
+import {BlockType, blockTypes} from './blockType';
+import * as blockType from './blockType';
 
 
 
@@ -36,7 +39,7 @@ const pixelDensity: number = Math.trunc(window.devicePixelRatio);
 // Voxel geometry and meshes
 
 
-let textureLoader = new THREE.TextureLoader();
+/*let textureLoader = new THREE.TextureLoader();
 let texture = textureLoader.load("../static/blocks.png");
 texture.repeat.x = 1/16;
 texture.repeat.y = 1/16;
@@ -46,19 +49,18 @@ texture.magFilter = THREE.NearestFilter; // Give textures pixelated appearance
 
 let material = new THREE.MeshLambertMaterial({
 	map: texture,
-});
+});*/
 
 
 // Lights & fog
 const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.0);
 const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.1);
 directionalLight.target = new THREE.Object3D();
-//directionalLight.target.position.set(2, -1, 4);
 scene.add(ambientLight, directionalLight.target, directionalLight);
 scene.fog = new THREE.Fog(0xf5f5f5, 96, 128);
 
 
-function addVoxel(
+/*function addVoxel(
 	transform: THREE.Object3D,
 	index: number,
 	mesh: THREE.InstancedMesh,
@@ -69,7 +71,7 @@ function addVoxel(
 	transform.position.set(x, y, z);
 	transform.updateMatrix();
 	mesh.setMatrixAt(index, transform.matrix);
-}
+}*/
 
 
 // chunkGroups[x][z] holds the geometry for that chunk
@@ -81,37 +83,28 @@ let chunkGroups: Record<
 = {};
 
 
-export function renderChunk(chunk: world.Chunk) {
-	// Used to hold the matrix that will be applied to objects
-	let transform = new THREE.Object3D();
-
-	const blockCount: number = chunk.count(world.isFullBlock);
-	let voxelGeometry = new THREE.BoxBufferGeometry(1, 1, 1);
-	let mesh = new THREE.InstancedMesh(voxelGeometry, material, blockCount);
-	mesh.frustumCulled = false;
+export function renderChunk(chunk: world.Chunk, btype: BlockType) {
+	const condition = blockType.isType(btype);
+	const blockCount: number = chunk.count(condition);
+	if (blockCount == 0) {
+		return;
+	}
+	let mesh: THREE.InstancedMesh = geometry.voxelMesh(blockCount, btype);
 
 	let meshIndex = 0;
-	for (let x = 0; x < 16; x++) {
-	for (let y = 0; y < 256; y++) {
-	for (let z = 0; z < 16; z++) {
-		const block: number = chunk.getBlock(world.getBlockIndex(x, y, z))!;
 
-		if (world.isFullBlock(block)) {
-			// These 2 lines of code are a result of painful trial and error.
-			const blockX = (chunk.z * 16) + ((x-1) % 16);
-			const blockZ = (chunk.x * -16) - ((z-1) % 16);
-
-			addVoxel(
-				transform,
-				meshIndex,
-				mesh,
-				blockX,
-				y,
-				blockZ,
-			);
-			meshIndex++;
-		}
-	}}}
+	chunk.forEach(function(block, x, y, z) {
+		geometry.addVoxel(
+			//transform,
+			meshIndex,
+			mesh,
+			// x, y, z converted from left to right handed coordinates
+			(chunk.z * 16) + ((x-1) % 16),
+			y,
+			(chunk.x * -16) - ((z-1) % 16),
+		);
+		meshIndex++;
+	}, condition);
 
 	let group = new THREE.Group();
 	group.add(mesh);

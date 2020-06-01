@@ -1,3 +1,7 @@
+import {blockTypes} from './blockType';
+import * as blockType from './blockType';
+
+
 const LittleEndian = true;
 
 
@@ -21,7 +25,6 @@ export class World {
 				}
 
 				const chunkCount = (arrayBuffer.byteLength - 786444) / 263184;
-				console.log("chunk count=" + chunkCount);
 				for (let i = 0; i < chunkCount; i++) {
 					const offset = 786444 + (i * 263184);
 					let newChunk = new Chunk(
@@ -64,12 +67,31 @@ export class Chunk {
 	// Count the number of blocks that satisfy a condition.
 	count(condition: (block: number) => boolean): number {
 		let result = 0;
-		for (let i = 0; i < 65536; i++) {
+		/*for (let i = 0; i < 65536; i++) {
 			if (condition(this.getBlock(i)!)) {
 				result++;
 			}
-		}
+		}*/
+		this.forEach(function() {
+			result++;
+		}, condition);
 		return result;
+	}
+
+
+	forEach(
+		callback: (value: number, x: number, y: number, z: number) => void,
+		condition = (anyBlock: number) => true,
+	) {
+		for (let x = 0; x < 16; x++) {
+		for (let y = 0; y < 256; y++) {
+		for (let z = 0; z < 16; z++) {
+			const blockIndex: number = getBlockIndex(x, y, z);
+			const block: number = this.getBlock(blockIndex)!;
+			if (condition(block)) {
+				callback(block, x, y, z);
+			}
+		}}}
 	}
 
 
@@ -112,17 +134,17 @@ export class Chunk {
 }*/
 
 
-export function isFullBlock(b: number): boolean {
+/*export function isFullBlock(b: number): boolean {
 	return !(
 	typeIs(b, 0) // air
 	|| typeIs(b, 18) // water
 	);
-}
+}*/
 
 
-function typeIs(block: number, id: number): boolean {
+/*function typeIs(block: number, id: number): boolean {
 	return getBlockType(block) === id;
-}
+}*/
 
 
 export function getBlockIndex(x: number, y: number, z: number): number {
@@ -130,6 +152,6 @@ export function getBlockIndex(x: number, y: number, z: number): number {
 }
 
 
-export function getBlockType(block: number): number {
+/*export function getBlockType(block: number): number {
 	return block & 0b1111111111;
-}
+}*/
