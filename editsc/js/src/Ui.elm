@@ -265,7 +265,7 @@ neuShadowDark : Theme -> Color
 neuShadowDark theme =
     case theme of
         Light ->
-            rgb255 235 235 235
+            rgba255 0 0 0 0.04
 
 
 

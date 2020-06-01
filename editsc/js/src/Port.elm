@@ -15,6 +15,8 @@ port parseChunks : () -> Cmd msg
 
 port chunksReady : ( () -> msg ) -> Sub msg
 
+port initRender : () -> Cmd msg
+
 
 -- Errors sent from JavaScript
 

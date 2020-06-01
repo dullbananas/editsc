@@ -6,6 +6,7 @@ import Browser
 import World exposing (World)
 import Page.Importer as Importer
 import Page.Editor as Editor
+import Port
 
 
 
@@ -50,7 +51,7 @@ update message model =
             in
                 case Importer.willSwitchToEditor <| newModel of
                     Just world ->
-                        ( Editor <| Editor.init world, Cmd.none )
+                        ( Editor <| Editor.init world, Port.initRender () )
                     Nothing ->
                         ( Importer newModel, cmd )
 

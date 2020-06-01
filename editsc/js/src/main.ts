@@ -101,26 +101,8 @@ app.ports.parseChunks.subscribe(function(): void {
 			})();*/
 
 			try {
-				//world = newWorld!;
 				world = new World(arrayBuffer);
 				app.ports.chunksReady.send(null);
-				// Editor is now ready to start; importing is done.
-				// Start 3D rendering
-				rendering.updateSize();
-				rendering.renderLoop();
-				rendering.startKeyEvents();
-				rendering.initCameraPosition();
-				rendering.currentKeys.add("updating");
-				for (let i = 0; i < world.chunkCount(); i++) {
-					blockTypes.forEach(function(btype) {
-						rendering.renderChunk(world.getChunk(i)!, btype);
-					});
-				}
-				/*for (let chunk of world.chunks) {
-					rendering.renderChunk(chunk);
-				}*/
-				rendering.currentKeys.delete("updating");
-				rendering.forceRenderFrame();
 			}
 			catch (e) {
 				app.ports.chunksError.send("Invalid data in chunks file; it might be corrupted");
@@ -128,6 +110,22 @@ app.ports.parseChunks.subscribe(function(): void {
 			}
 		});
 	}
+});
+
+
+app.ports.initRender.subscribe(function() {
+	rendering.updateSize();
+	rendering.renderLoop();
+	rendering.startKeyEvents();
+	rendering.initCameraPosition();
+	rendering.currentKeys.add("updating");
+	for (let i = 0; i < world.chunkCount(); i++) {
+		blockTypes.forEach(function(btype) {
+			rendering.renderChunk(world.getChunk(i)!, btype);
+		});
+	}
+	rendering.currentKeys.delete("updating");
+	rendering.forceRenderFrame();
 });
 
 
