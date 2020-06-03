@@ -27,6 +27,7 @@ type alias Model =
     , uiVisibility : Visibility
     , theme : Theme
     , menu : Menu
+    , chunksToRender : List Int
     --, jsInfo : String
     }
 
@@ -39,35 +40,23 @@ type Menu
 type Visibility
     = Collapsed
     | Expanded
+    | Loading String
 
-
-{-type Tab
-    = Collapsed
-    | DebugView
-    | Saver SaverModel
-
-
-type alias SaverModel =
-    { fileName : String
-    }
-
-
-initSaver : SaverModel
-initSaver =
-    { fileName = "name.scworld"
-    }-}
 
 
 -- Init
 
 
-init : String -> Model
+init : String -> ( Model, Cmd Msg )
 init world =
-    { world = world
-    , uiVisibility = Collapsed
-    , theme = Light
-    , menu = MainMenu
-    }
+    Tuple.pair
+        { world = world
+        , uiVisibility = Loading "Loading"
+        , theme = Light
+        , menu = MainMenu
+        , chunksToRender = []
+        }
+        ( Port.startRendering () )
 
 
 
@@ -78,9 +67,7 @@ type Msg
     = ToggleUi Visibility
     | UpdateMenu Menu
     | SaveWorldMsg String
-    --= SwitchTab Tab
-    --| ChangeSaveName String
-    --| GotJsInfo String
+    | Progress Port.Progress
 
 
 update : Msg -> Model -> ( Model, Cmd msg )
@@ -104,18 +91,21 @@ update msg model =
                 , xml = model.world
                 }
             )
-        --SwitchTab tab ->
-            --( { model | currentTab = tab }, Cmd.none )
 
-        {-ChangeSaveName fileName ->
-            ( { model | currentTab = Saver { initSaver | fileName = fileName } }
-            , Cmd.none
-            )
-
-
-        --GotJsInfo string ->
-            --( { model | jsInfo = string }, Cmd.none )-}
-
+        Progress progress ->
+            let
+                done : Bool
+                done =
+                    progress.soFar == progress.total
+            in Tuple.pair
+                { model
+                | uiVisibility =
+                    if done then Collapsed else Loading <|
+                        progress.message ++ ": "
+                            ++ String.fromInt progress.soFar
+                            ++ "/" ++ String.fromInt progress.total
+                }
+                ( if done then Cmd.none else Port.continue progress.soFar )
 
 
 -- Subscriptions
@@ -124,7 +114,7 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [-- Port.jsInfo GotJsInfo
+        [ Port.progress Progress
         ]
 
 
@@ -174,6 +164,11 @@ body model =
         ]
 
         [ case model.uiVisibility of
+            Loading message ->
+                column
+                    ( uiAttrs model.theme )
+                    [ bodyText message ]
+
             Collapsed ->
                 column
                     ( {-explain Debug.todo ::-} uiAttrs model.theme )

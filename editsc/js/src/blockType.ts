@@ -1,10 +1,13 @@
+import * as THREE from 'three';
+
+
 export type BlockType =
 	| {
 		kind: 'voxel',
 		id: number,
 		textureX: number,
 		textureY: number,
-		color: number,
+		color: THREE.Color,
 	};
 
 
@@ -26,7 +29,7 @@ function v(id: number, x: number, y: number, color = 0xffffff): BlockType {
 		id: id,
 		textureX: x,
 		textureY: y,
-		color: color,
+		color: new THREE.Color(color),
 	};
 }
 
@@ -45,3 +48,4 @@ export const blockTypes: Array<BlockType> = [
 	v(15, 3, 4), // Glass
 	v(16, 2, 2), // Coal ore
 ];
+''

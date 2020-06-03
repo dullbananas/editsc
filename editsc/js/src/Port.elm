@@ -15,7 +15,7 @@ port parseChunks : () -> Cmd msg
 
 port chunksReady : ( () -> msg ) -> Sub msg
 
-port initRender : () -> Cmd msg
+--port initRender : () -> Cmd msg
 
 
 -- Errors sent from JavaScript
@@ -33,7 +33,17 @@ port saveWorld : { fileName : String, xml : String } -> Cmd msg
 
 
 
--- Info given by JavaScript to be displayed in the UI
+-- 3D world rendering and interaction
 
 
---port jsInfo : ( String -> msg ) -> Sub msg
+type alias Progress =
+    { soFar : Int
+    , total : Int
+    , message : String
+    }
+
+port progress : ( Progress -> msg ) -> Sub msg
+
+port continue : Int -> Cmd msg
+
+port startRendering : () -> Cmd msg

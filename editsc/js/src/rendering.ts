@@ -36,22 +36,6 @@ const pixelDensity: number = Math.trunc(window.devicePixelRatio);
 
 
 
-// Voxel geometry and meshes
-
-
-/*let textureLoader = new THREE.TextureLoader();
-let texture = textureLoader.load("../static/blocks.png");
-texture.repeat.x = 1/16;
-texture.repeat.y = 1/16;
-texture.offset.x = 2/16;
-texture.offset.y = 14/16;
-texture.magFilter = THREE.NearestFilter; // Give textures pixelated appearance
-
-let material = new THREE.MeshLambertMaterial({
-	map: texture,
-});*/
-
-
 // Lights & fog
 const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.0);
 const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.1);
@@ -59,19 +43,6 @@ directionalLight.target = new THREE.Object3D();
 scene.add(ambientLight, directionalLight.target, directionalLight);
 scene.fog = new THREE.Fog(0xf5f5f5, 96, 128);
 
-
-/*function addVoxel(
-	transform: THREE.Object3D,
-	index: number,
-	mesh: THREE.InstancedMesh,
-	x: number,
-	y: number,
-	z: number,
-) {
-	transform.position.set(x, y, z);
-	transform.updateMatrix();
-	mesh.setMatrixAt(index, transform.matrix);
-}*/
 
 
 // chunkGroups[x][z] holds the geometry for that chunk
@@ -83,37 +54,49 @@ let chunkGroups: Record<
 = {};
 
 
-export function renderChunk(chunk: world.Chunk, btype: BlockType) {
-	const condition = blockType.isType(btype);
-	const blockCount: number = chunk.count(condition);
-	if (blockCount == 0) {
-		return;
-	}
-	let mesh: THREE.InstancedMesh = geometry.voxelMesh(blockCount, btype);
-
-	let meshIndex = 0;
-
-	chunk.forEach(function(block, x, y, z) {
-		geometry.addVoxel(
-			//transform,
-			meshIndex,
-			mesh,
-			// x, y, z converted from left to right handed coordinates
-			(chunk.z * 16) + ((x-1) % 16),
-			y,
-			(chunk.x * -16) - ((z-1) % 16),
-		);
-		meshIndex++;
-	}, condition);
-
-	let group = new THREE.Group();
-	group.add(mesh);
-	scene.add(group);
-
+export function renderChunk(chunk: world.Chunk/*, btype: BlockType*/) {
+	let group: THREE.Group;
 	if(!chunkGroups[chunk.x]) {
 		chunkGroups[chunk.x] = {};
 	}
-	chunkGroups[chunk.x]![chunk.z] = group;
+	if(!(chunkGroups[chunk.x]![chunk.z])) {
+		group = new THREE.Group();
+		scene.add(group);
+		chunkGroups[chunk.x]![chunk.z] = group;
+	}
+	else {
+		group = chunkGroups[chunk.x]![chunk.z]!;
+	}
+
+	blockTypes.forEach(function(btype: BlockType) {
+		const condition = blockType.isType(btype);
+		if (chunk.count(condition) == 0) {
+			return;
+		}
+		const faceCount: number = chunk.countFaces(condition);
+
+		let mesh: THREE.InstancedMesh = geometry.voxelMesh(faceCount, btype);
+		let meshIndex = 0;
+		chunk.forEach(function(block, x, y, z) {
+			chunk.blockFaces(condition, x, y, z).forEach(function(face: THREE.Vector3) {
+				geometry.addFace(
+					meshIndex,
+					mesh,
+					face,
+
+					// x, y, z converted from left to right handed coordinates
+					(chunk.z * 16) + ((x-1) % 16),
+					//(chunk.z << 4) + ((x-1) % 16),
+					y,
+					(chunk.x * -16) - ((z-1) % 16),
+					//-(chunk.x << 16) - ((z-1) % 16),
+				);
+				meshIndex++;
+			});
+		}, condition);
+		group.add(mesh);
+		//console.log({meshindex:meshIndex,faces:faceCount,blcoks:chunk.count(condition)});
+	});
 }
 
 
@@ -134,6 +117,7 @@ export function initCameraPosition() {
 			z + 1,
 		);
 	}
+	camera.updateMatrix();
 }
 
 
@@ -179,12 +163,15 @@ function renderFrame() {
 	}
 	if (currentKeys.has("j")) {
 		rotate(0, 1, 0, angle);
+		updateLight();
 	}
 	if (currentKeys.has("l")) {
 		rotate(0, 1, 0, -angle);
+		updateLight();
 	}
 	// Render frame only if a key is being pressed
 	if (currentKeys.size != 0) {
+		camera.updateMatrix();
 		camera.updateProjectionMatrix();
 		forceRenderFrame();
 	}
@@ -192,25 +179,25 @@ function renderFrame() {
 
 
 // FPS counter
-//let frames = 0;
 let fps = 0;
 let millisPerFrame = 0;
 let lastRenderTime = Date.now(); // when the last frame was rendered
-/*window.setInterval(function() {
-	fps = frames * 10;
-	frames = 0;
-}, 100);*/
 
 
-export function forceRenderFrame() {
+function updateLight() {
 	directionalLight.position.copy(camera.position);
 	directionalLight.target.position.copy(camera.position);
 	directionalLight.target.quaternion.copy(camera.quaternion);
 
 	directionalLight.target.rotateX(0.01); // look up
 	directionalLight.target.translateZ(-1); // move forward
-	//directionalLight.target.translateX(1); // move right
 
+	directionalLight.updateMatrix();
+}
+//window.setInterval(updateLight, 100)
+
+
+export function forceRenderFrame() {
 	renderer.render(scene, camera);
 }
 
@@ -242,7 +229,7 @@ window.onresize = function() {
 	updateSize();
 
 	// This is needed to make sure the size is correct
-	window.setTimeout(updateSize, 100);
+	window.setTimeout(updateSize, 200);
 };
 
 
@@ -262,9 +249,13 @@ export function startKeyEvents() {
 
 			if (key == "u") {
 				camera.rotateX(Math.PI/-8);
+				camera.updateMatrix();
+				updateLight();
 			}
 			if (key == "o") {
 				camera.rotateX(Math.PI/8);
+				camera.updateMatrix();
+				updateLight();
 			}
 		}
 	};

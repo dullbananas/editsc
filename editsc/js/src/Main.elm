@@ -49,14 +49,19 @@ update message model =
                 ( newModel, cmd ) =
                     Importer.update msg importer
             in
-                case Importer.willSwitchToEditor <| newModel of
-                    Just world ->
-                        ( Editor <| Editor.init world, Port.initRender () )
-                    Nothing ->
-                        ( Importer newModel, cmd )
+            case Importer.willSwitchToEditor <| newModel of
+                Just world ->
+                    -- Switch from import page to editor
+                    Editor.init world
+                        |> Tuple.mapFirst Editor
+                        |> Tuple.mapSecond ( Cmd.map EditorMsg )
+
+                Nothing ->
+                    ( Importer newModel, cmd )
 
         ( EditorMsg msg, Editor editor ) ->
-            Editor.update msg editor |> Tuple.mapFirst Editor
+            Editor.update msg editor
+                |> Tuple.mapFirst Editor
 
         _ ->
             ( model, Cmd.none )

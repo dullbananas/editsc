@@ -102,6 +102,7 @@ app.ports.parseChunks.subscribe(function(): void {
 
 			try {
 				world = new World(arrayBuffer);
+				initRender();
 				app.ports.chunksReady.send(null);
 			}
 			catch (e) {
@@ -113,20 +114,46 @@ app.ports.parseChunks.subscribe(function(): void {
 });
 
 
-app.ports.initRender.subscribe(function() {
+app.ports.startRendering.subscribe(function() {
+	app.ports.progress.send({
+		soFar: 0,
+		total: world.chunkLength,
+		message: "Creating geometry",
+	});
+});
+
+
+app.ports['continue'].subscribe(function(i: number) {
+	console.log(i);
+	const chunk = world.getChunk(i);
+	if (chunk) {
+		rendering.renderChunk(chunk);
+		rendering.forceRenderFrame();
+		/*if (i + 1 == world.chunkCount()) {
+			rendering.startKeyEvents();
+		}*/
+		window.setTimeout(function() {
+			app.ports.progress.send({
+				soFar: i + 1,
+				total: world.chunkLength,
+				message: "Creating geometry",
+			});
+		}, 10);
+	}
+});
+
+
+function initRender() {
+	rendering.startKeyEvents();
 	rendering.updateSize();
 	rendering.renderLoop();
-	rendering.startKeyEvents();
 	rendering.initCameraPosition();
-	rendering.currentKeys.add("updating");
-	for (let i = 0; i < world.chunkCount(); i++) {
-		blockTypes.forEach(function(btype) {
-			rendering.renderChunk(world.getChunk(i)!, btype);
-		});
+	/*for (let i = 0; i < world.chunkCount(); i++) {
+		rendering.renderChunk(world.getChunk(i)!);
+		rendering.forceRenderFrame();
 	}
-	rendering.currentKeys.delete("updating");
-	rendering.forceRenderFrame();
-});
+	rendering.startKeyEvents();*/
+}
 
 
 app.ports.saveWorld.subscribe(function(arg: {fileName: string, xml: string}): void {
