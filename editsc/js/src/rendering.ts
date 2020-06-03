@@ -54,7 +54,7 @@ let chunkGroups: Record<
 = {};
 
 
-export function renderChunk(chunk: world.Chunk/*, btype: BlockType*/) {
+export async function renderChunk(chunk: world.Chunk/*, btype: BlockType*/) {
 	let group: THREE.Group;
 	if(!chunkGroups[chunk.x]) {
 		chunkGroups[chunk.x] = {};
@@ -68,12 +68,14 @@ export function renderChunk(chunk: world.Chunk/*, btype: BlockType*/) {
 		group = chunkGroups[chunk.x]![chunk.z]!;
 	}
 
-	blockTypes.forEach(function(btype: BlockType) {
+	//blockTypes.forEach(function(btype: BlockType) {
+	for (let btype of blockTypes) {
+		console.log(btype);
 		const condition = blockType.isType(btype);
-		if (chunk.count(condition) == 0) {
-			return;
+		if ((await chunk.count(condition)) == 0) {
+			continue;
 		}
-		const faceCount: number = chunk.countFaces(condition);
+		const faceCount: number = await chunk.countFaces(condition);
 
 		let mesh: THREE.InstancedMesh = geometry.voxelMesh(faceCount, btype);
 		let meshIndex = 0;
@@ -96,7 +98,7 @@ export function renderChunk(chunk: world.Chunk/*, btype: BlockType*/) {
 		}, condition);
 		group.add(mesh);
 		//console.log({meshindex:meshIndex,faces:faceCount,blcoks:chunk.count(condition)});
-	});
+	}
 }
 
 

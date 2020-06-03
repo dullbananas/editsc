@@ -127,18 +127,16 @@ app.ports['continue'].subscribe(function(i: number) {
 	console.log(i);
 	const chunk = world.getChunk(i);
 	if (chunk) {
-		rendering.renderChunk(chunk);
-		rendering.forceRenderFrame();
-		/*if (i + 1 == world.chunkCount()) {
-			rendering.startKeyEvents();
-		}*/
-		window.setTimeout(function() {
-			app.ports.progress.send({
-				soFar: i + 1,
-				total: world.chunkLength,
-				message: "Creating geometry",
-			});
-		}, 5);
+		rendering.renderChunk(chunk).then(function() {
+			rendering.forceRenderFrame();
+			//window.setTimeout(function() {
+				app.ports.progress.send({
+					soFar: i + 1,
+					total: world.chunkLength,
+					message: "Creating geometry",
+				});
+			//}, 1);
+		});
 	}
 });
 
