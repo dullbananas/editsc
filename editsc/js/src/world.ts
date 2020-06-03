@@ -97,9 +97,14 @@ export class Chunk {
 	// Count the number of blocks that satisfy a condition.
 	count(condition: (block: number) => boolean): number {
 		let result = 0;
-		this.forEach(function() {
+		/*this.forEach(function() {
 			result++;
-		}, condition);
+		}, condition);*/
+		for (let i = 0; i < 65536; i++) {
+			if (condition(this.getBlock(i))) {
+				result++;
+			}
+		}
 		return result;
 	}
 
@@ -141,17 +146,17 @@ export class Chunk {
 		condition = (anyBlock: number) => true,
 	) {
 		//return y + (x << 8) + (z << 12);
-		for (let x = 0; x < 16; x++) {
+		//for (let x = 0; x < 16; x++) {
+		//for (let y = 0; y < 256; y++) {
+		//for (let z = 0; z < 16; z++) {
+		for (let x = 0; x < (16<<8); x+=(1<<8)) {
 		for (let y = 0; y < 256; y++) {
-		for (let z = 0; z < 16; z++) {
-		/*for (let x = 0; x < (16<<8); x+=(1<<8)) {
-		for (let y = 0; y < 256; y++) {
-		for (let z = 0; z < (16<<12); z+=(1<<12)) {*/
+		for (let z = 0; z < (16<<12); z+=(1<<12)) {
 			//const blockIndex: number = getBlockIndex(x, y, z);
-			const block: number = this.getBlock(getBlockIndex(x, y, z))!;
-			//const block: number = this.getBlock(x + y + z)!;
+			//const block: number = this.getBlock(getBlockIndex(x, y, z))!;
+			const block: number = this.getBlock(x + y + z)!;
 			if (condition(block)) {
-				callback(block, x, y, z);
+				callback(block, x>>8, y, z>>12);
 			}
 		}}}
 	}

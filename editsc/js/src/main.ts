@@ -138,7 +138,7 @@ app.ports['continue'].subscribe(function(i: number) {
 				total: world.chunkLength,
 				message: "Creating geometry",
 			});
-		}, 10);
+		}, 5);
 	}
 });
 
