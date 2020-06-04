@@ -124,18 +124,18 @@ app.ports.startRendering.subscribe(function() {
 
 
 app.ports['continue'].subscribe(function(i: number) {
-	console.log(i);
+	//console.log(i);
 	const chunk = world.getChunk(i);
 	if (chunk) {
-		rendering.renderChunk(chunk).then(function() {
-			rendering.forceRenderFrame();
-			//window.setTimeout(function() {
+		rendering.renderChunk(chunk).then(async function() {
+			await rendering.forceRenderFrame();
+			window.setTimeout(function() {
 				app.ports.progress.send({
 					soFar: i + 1,
 					total: world.chunkLength,
 					message: "Creating geometry",
 				});
-			//}, 1);
+			}, 3);
 		});
 	}
 });

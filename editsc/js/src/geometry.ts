@@ -5,6 +5,15 @@ import {BlockType} from './blockType';
 import * as blockType from './blockType';
 
 
+export type Face =
+	| '+x'
+	| '+y'
+	| '+z'
+	| '-x'
+	| '-y'
+	| '-z';
+
+
 // Holds matrix that will be applied to objects
 let tmpObj = new THREE.Object3D();
 
@@ -12,7 +21,7 @@ let tmpObj = new THREE.Object3D();
 let textureLoader = new THREE.TextureLoader();
 //let texture = textureLoader.load("../static/blocks.png", rendering.forceRenderFrame);
 
-function newTexture(btype: BlockType/*, onLoad: any*/): THREE.Texture {
+async function newTexture(btype: BlockType): Promise<THREE.Texture> {
 	let result = textureLoader.load("../static/blocks.png", rendering.forceRenderFrame);
 	//let result = texture.clone();
 	//result.needsUpdate = true;
@@ -29,14 +38,21 @@ function newTexture(btype: BlockType/*, onLoad: any*/): THREE.Texture {
 }
 
 
-export const allFaces = [
-	new THREE.Vector3(0, 0, -1),
-	new THREE.Vector3(0, 0, 1),
-	new THREE.Vector3(0, -1, 0),
-	new THREE.Vector3(0, 1, 0),
-	new THREE.Vector3(-1, 0, 0),
-	new THREE.Vector3(1, 0, 0),
-];
+export const faceVectors: Record<Face, THREE.Vector3> = {
+	'+x': new THREE.Vector3(0, 0, 1),
+	'+y': new THREE.Vector3(0, 1, 0),
+	'+z': new THREE.Vector3(1, 0, 0),
+	'-x': new THREE.Vector3(0, 0, -1),
+	'-y': new THREE.Vector3(0, -1, 0),
+	'-z': new THREE.Vector3(-1, 0, 0),
+};
+
+
+/*const halfVectors: Record<Face, THREE.Vector3> = (function() {
+	result = faceVectors;
+	for ()
+	return result;
+})();*/
 
 
 export function addFace(
@@ -48,10 +64,10 @@ export function addFace(
 	tmpObj.position.set(
 		x + face.x * 0.5,
 		y + face.y * 0.5,
-		z + face.z * 0.5,
+		z + face.z * -0.5,
 	);
 	//tmpObj.lookAt(face.x*2+x, face.y*2+y, face.z*2+z);
-	tmpObj.lookAt(face.x+x, face.y+y, face.z+z);
+	tmpObj.lookAt(face.x+x, face.y+y, -face.z+z);
 	/*tmpObj.position.x += face.x * 0.5;
 	tmpObj.position.y += face.y * 0.5;
 	tmpObj.position.z += face.z * 0.5;*/
@@ -60,10 +76,12 @@ export function addFace(
 }
 
 
-export function voxelMesh(faceCount: number, btype: BlockType): THREE.InstancedMesh {
+export async function voxelMesh(
+	faceCount: number, btype: BlockType
+): Promise<THREE.InstancedMesh> {
 	const geometry = new THREE.PlaneBufferGeometry(1, 1);
 	const material = new THREE.MeshLambertMaterial({
-		map: newTexture(btype),
+		map: await newTexture(btype),
 		color: btype.color,
 		//side: THREE.DoubleSide,
 	});

@@ -68,27 +68,30 @@ export class Chunk {
 	}
 
 
-	blockFaces(
+	async blockFaces(
 		condition: (block: number) => boolean,
 		x: number, y: number, z: number
-	): Array<THREE.Vector3> {
-		let result: Array<THREE.Vector3> = [];
+	): Promise<Array<geometry.Face>> {
+		//return y + (x << 8) + (z << 12);
+		let result: Array<geometry.Face> = [];
 
-		geometry.allFaces.forEach((face) => {
-			const ox = x + face.x;
-			const oy = y + face.y;
-			const oz = z + face.z;
-			face.z *= -1;
+		for (let faceName in geometry.faceVectors) {
+			const face = faceName as geometry.Face;
+			const vector: THREE.Vector3 = geometry.faceVectors[face];
+			const ox = x + vector.x;
+			const oy = y + vector.y;
+			const oz = z + vector.z;
+			//face.z *= -1;
 			if (!inChunkBounds(ox, oy, oz)) {
 				result.push(face);
-				return;
+				continue;
 			}
 			const otherIndex: number = getBlockIndex(ox, oy, oz);
 			const otherBlock: number = this.getBlock(otherIndex)!;
 			if (!condition(otherBlock)) {
 				result.push(face);
 			}
-		});
+		}
 
 		return result;
 	}
@@ -121,11 +124,12 @@ export class Chunk {
 		];*/
 		let result = 0;
 
-		this.forEach((block, x, y, z) => {
-			geometry.allFaces.forEach((face) => {
-				const ox = x + face.x;
-				const oy = y + face.y;
-				const oz = z + face.z;
+		for (let face in geometry.faceVectors) {
+			const vector = geometry.faceVectors[face as geometry.Face];
+			await this.forEach(async (block, x, y, z) => {
+				const ox = x + vector.x;
+				const oy = y + vector.y;
+				const oz = z + vector.z;
 				if (!inChunkBounds(ox, oy, oz)) {
 					result++;
 					return;
@@ -134,29 +138,35 @@ export class Chunk {
 				if (!condition(this.getBlock(blockIndex)!)) {
 					result++;
 				}
-			});
-		}, condition);
+			}, condition);
+		}
 
 		return result;
 	}
 
 
-	forEach(
-		callback: (value: number, x: number, y: number, z: number) => void,
+	async forEach(
+		callback: (value: number, x: number, y: number, z: number) => Promise<void>,
 		condition = (anyBlock: number) => true,
 	) {
 		//return y + (x << 8) + (z << 12);
+
 		//for (let x = 0; x < 16; x++) {
 		//for (let y = 0; y < 256; y++) {
 		//for (let z = 0; z < 16; z++) {
-		for (let x = 0; x < (16<<8); x+=(1<<8)) {
+
+		//for (let x = 0; x < (16<<8); x+=(1<<8)) {
+		//for (let y = 0; y < 256; y++) {
+		//for (let z = 0; z < (16<<12); z+=(1<<12)) {
+
+		for (let x = 0; x < 4096; x+=256) {
 		for (let y = 0; y < 256; y++) {
-		for (let z = 0; z < (16<<12); z+=(1<<12)) {
+		for (let z = 0; z < 65536; z+=4096) {
 			//const blockIndex: number = getBlockIndex(x, y, z);
 			//const block: number = this.getBlock(getBlockIndex(x, y, z))!;
 			const block: number = this.getBlock(x + y + z)!;
 			if (condition(block)) {
-				callback(block, x>>8, y, z>>12);
+				await callback(block, x>>8, y, z>>12);
 			}
 		}}}
 	}

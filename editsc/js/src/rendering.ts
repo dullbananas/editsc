@@ -70,32 +70,44 @@ export async function renderChunk(chunk: world.Chunk/*, btype: BlockType*/) {
 
 	//blockTypes.forEach(function(btype: BlockType) {
 	for (let btype of blockTypes) {
-		console.log(btype);
 		const condition = blockType.isType(btype);
 		if ((await chunk.count(condition)) == 0) {
 			continue;
 		}
 		const faceCount: number = await chunk.countFaces(condition);
 
-		let mesh: THREE.InstancedMesh = geometry.voxelMesh(faceCount, btype);
+		let mesh: THREE.InstancedMesh = await geometry.voxelMesh(faceCount, btype);
+		mesh.position.set(chunk.z << 4, 0, -(chunk.x << 4))
 		let meshIndex = 0;
-		chunk.forEach(function(block, x, y, z) {
-			chunk.blockFaces(condition, x, y, z).forEach(function(face: THREE.Vector3) {
+
+		await chunk.forEach(async function(block, x, y, z) {
+			if (meshIndex == faceCount) {
+				return;
+			}
+			const faces = await chunk.blockFaces(condition, x, y, z);
+			faces.forEach(function(face: geometry.Face) {
 				geometry.addFace(
 					meshIndex,
 					mesh,
-					face,
+					geometry.faceVectors[face],
 
 					// x, y, z converted from left to right handed coordinates
-					(chunk.z * 16) + ((x-1) % 16),
+
+					//(chunk.z * 16) + ((x-1) % 16),
 					//(chunk.z << 4) + ((x-1) % 16),
+					//(chunk.z << 4) + x - 1,
+					x - 1,
 					y,
-					(chunk.x * -16) - ((z-1) % 16),
-					//-(chunk.x << 16) - ((z-1) % 16),
+					//(chunk.x * -16) - ((z-1) % 16),
+					//-(chunk.x << 4) - ((z-1) % 16),
+					-z + 1,
 				);
 				meshIndex++;
 			});
 		}, condition);
+
+		mesh.updateMatrix();
+		mesh.instanceMatrix.needsUpdate = true;
 		group.add(mesh);
 		//console.log({meshindex:meshIndex,faces:faceCount,blcoks:chunk.count(condition)});
 	}
@@ -127,22 +139,29 @@ export function initCameraPosition() {
 // Rendering loop
 
 
+let rotationVector = new THREE.Vector3(0, 0, 0);
 function rotate(x: number, y: number, z: number, angle: number) {
-	camera.rotateOnWorldAxis(new THREE.Vector3(x, y, z), angle);
+	rotationVector.set(x, y, z);
+	camera.rotateOnWorldAxis(rotationVector, angle);
 }
 
 
-function renderFrame() {
-	if (fps == 0) {
+async function renderFrame() {
+	if (currentKeys.size == 0) {
+		return;
+	}
+	if (millisPerFrame == 0) {
 		return;
 	}
 
-	let moveDist: number = 24 / fps;
-	let angle: number = Math.PI / 2 / fps;
+	//let moveDist: number = 24 / (1000/millisPerFrame);
+	let moveDist: number = 0.024 * millisPerFrame;
+	//let angle: number = Math.PI / 2 / (1000/millisPerFrame);
+	let angle: number = 0.0016 * millisPerFrame;
 
 	if (currentKeys.has("shift")) {
-		moveDist /= 2;
-		angle /= 2;
+		moveDist *= 0.5;
+		angle *= 0.5;
 	}
 
 	if (currentKeys.has("i")) {
@@ -171,22 +190,20 @@ function renderFrame() {
 		rotate(0, 1, 0, -angle);
 		updateLight();
 	}
-	// Render frame only if a key is being pressed
-	if (currentKeys.size != 0) {
-		camera.updateMatrix();
-		camera.updateProjectionMatrix();
-		forceRenderFrame();
-	}
+
+	camera.updateMatrix();
+	//camera.updateProjectionMatrix();
+	await forceRenderFrame();
 }
 
 
 // FPS counter
-let fps = 0;
+//let fps = 0;
 let millisPerFrame = 0;
 let lastRenderTime = Date.now(); // when the last frame was rendered
 
 
-function updateLight() {
+async function updateLight() {
 	directionalLight.position.copy(camera.position);
 	directionalLight.target.position.copy(camera.position);
 	directionalLight.target.quaternion.copy(camera.quaternion);
@@ -199,21 +216,22 @@ function updateLight() {
 //window.setInterval(updateLight, 100)
 
 
-export function forceRenderFrame() {
+export async function forceRenderFrame() {
 	renderer.render(scene, camera);
 }
 
 
 export function renderLoop() {
-	requestAnimationFrame(renderLoop);
-	renderFrame();
-	millisPerFrame = Date.now() - lastRenderTime;
-	lastRenderTime = Date.now();
-	fps = 1000 / millisPerFrame;
+	renderFrame().then(function() {
+		millisPerFrame = Date.now() - lastRenderTime;
+		lastRenderTime = Date.now();
+		requestAnimationFrame(renderLoop);
+	});
+	//fps = 1000 / millisPerFrame;
 }
 
 
-export function updateSize() {
+export async function updateSize() {
 	const PreventStyleChange = false;
 
 	const width: number = window.innerWidth * pixelDensity;
