@@ -5,6 +5,7 @@ import {World} from './world';
 import * as rendering from './rendering';
 import {blockTypes} from './blockType';
 import * as blockType from './blockType';
+import * as extension from './extension';
 
 
 
@@ -73,43 +74,24 @@ app.ports.extractZip.subscribe(function(): void {
 });
 
 
-app.ports.parseChunks.subscribe(function(): void {
+app.ports.parseChunks.subscribe(async function() {
 	if (chunksFileEntry) {
-		chunksFileEntry.async('arraybuffer').then(function(arrayBuffer: ArrayBuffer) {
-			/*let fileReader = new FileReader();
-			fileReader.readAsArrayBuffer(blob);
-			fileReader.onload = function(event: Event) {
-				let arrayBuffer: ArrayBuffer = (fileReader.result! as ArrayBuffer);
-				let kaitaiStream: any = new KaitaiStream(arrayBuffer);
-				let chunksStruct = (function(): any | undefined {
-					try {
-						return new Chunks32h(kaitaiStream);
-					}
-					catch (e) {
-						console.error(e);
-						return undefined;
-					}
-				})();*/
-			/*let newWorld = (function(): World | undefined {
-				try {
-					return new World(arrayBuffer)
-				}
-				catch(e) {
-					console.error(e);
-					return undefined;
-				}
-			})();*/
+		let arrayBuffer: ArrayBuffer = await chunksFileEntry.async('arraybuffer');
+		try {
+			world = new World(arrayBuffer);
+		}
 
-			try {
-				world = new World(arrayBuffer);
-				initRender();
-				app.ports.chunksReady.send(null);
-			}
-			catch (e) {
-				app.ports.chunksError.send("Invalid data in chunks file; it might be corrupted");
-				console.error(e);
-			}
-		});
+		catch (e) {
+			app.ports.chunksError.send("Invalid data in chunks file; it might be corrupted");
+			console.error({chunkLoadError: e});
+			return;
+		}
+
+		await extension.load("https://editsc.pythonanywhere.com/dulldevBasics.js");
+
+		// Importing is done
+		initRender();
+		app.ports.chunksReady.send(null);
 	}
 });
 
@@ -166,3 +148,6 @@ app.ports.saveWorld.subscribe(function(arg: {fileName: string, xml: string}): vo
 		download(blob, arg.fileName, "application/zip");
 	});
 });
+
+
+app.ports.selectionState.subscribe(rendering.updateSelectMode);

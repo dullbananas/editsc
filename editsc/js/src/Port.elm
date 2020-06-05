@@ -47,3 +47,5 @@ port progress : ( Progress -> msg ) -> Sub msg
 port continue : Int -> Cmd msg
 
 port startRendering : () -> Cmd msg
+
+port selectionState : Int -> Cmd msg

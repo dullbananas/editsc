@@ -48,4 +48,3 @@ export const blockTypes: Array<BlockType> = [
 	v(15, 3, 4), // Glass
 	v(16, 2, 2), // Coal ore
 ];
-''

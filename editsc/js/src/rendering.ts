@@ -5,6 +5,16 @@ import * as world from './world';
 import * as geometry from './geometry';
 import {BlockType, blockTypes} from './blockType';
 import * as blockType from './blockType';
+import * as extension from './extension';
+
+
+/*
+
+Layers
+	0: Almost everything
+	1: Single block selection box
+
+*/
 
 
 
@@ -74,42 +84,48 @@ export async function renderChunk(chunk: world.Chunk/*, btype: BlockType*/) {
 		if ((await chunk.count(condition)) == 0) {
 			continue;
 		}
-		const faceCount: number = await chunk.countFaces(condition);
 
-		let mesh: THREE.InstancedMesh = await geometry.voxelMesh(faceCount, btype);
-		mesh.position.set(chunk.z << 4, 0, -(chunk.x << 4))
-		let meshIndex = 0;
+		switch (btype.kind) {
+			case 'voxel':
+				const faceCount: number = await chunk.countFaces(condition);
 
-		await chunk.forEach(async function(block, x, y, z) {
-			if (meshIndex == faceCount) {
-				return;
-			}
-			const faces = await chunk.blockFaces(condition, x, y, z);
-			faces.forEach(function(face: geometry.Face) {
-				geometry.addFace(
-					meshIndex,
-					mesh,
-					geometry.faceVectors[face],
+				let mesh: THREE.InstancedMesh = await geometry.voxelMesh(faceCount, btype);
+				mesh.position.set(chunk.z << 4, 0, -(chunk.x << 4))
+				let meshIndex = 0;
 
-					// x, y, z converted from left to right handed coordinates
+				await chunk.forEach(async function(block, x, y, z) {
+					if (meshIndex == faceCount) {
+						return;
+					}
+					const faces = await chunk.blockFaces(condition, x, y, z);
+					faces.forEach(function(face: geometry.Face) {
+						geometry.addFace(
+							meshIndex,
+							mesh,
+							geometry.faceVectors[face],
 
-					//(chunk.z * 16) + ((x-1) % 16),
-					//(chunk.z << 4) + ((x-1) % 16),
-					//(chunk.z << 4) + x - 1,
-					x - 1,
-					y,
-					//(chunk.x * -16) - ((z-1) % 16),
-					//-(chunk.x << 4) - ((z-1) % 16),
-					-z + 1,
-				);
-				meshIndex++;
-			});
-		}, condition);
+							// x, y, z converted from left to right handed coordinates
 
-		mesh.updateMatrix();
-		mesh.instanceMatrix.needsUpdate = true;
-		group.add(mesh);
-		//console.log({meshindex:meshIndex,faces:faceCount,blcoks:chunk.count(condition)});
+							//(chunk.z * 16) + ((x-1) % 16),
+							//(chunk.z << 4) + ((x-1) % 16),
+							//(chunk.z << 4) + x - 1,
+							//x - 1,
+							x,
+							y,
+							//(chunk.x * -16) - ((z-1) % 16),
+							//-(chunk.x << 4) - ((z-1) % 16),
+							//-z + 1,
+							-z,
+						);
+						meshIndex++;
+					});
+				}, condition);
+
+				mesh.updateMatrix();
+				mesh.instanceMatrix.needsUpdate = true;
+				group.add(mesh);
+				break;
+		}
 	}
 }
 
@@ -160,7 +176,7 @@ async function renderFrame() {
 	let angle: number = 0.0016 * millisPerFrame;
 
 	if (currentKeys.has("shift")) {
-		moveDist *= 0.5;
+		moveDist *= 0.35;
 		angle *= 0.5;
 	}
 
@@ -189,6 +205,10 @@ async function renderFrame() {
 	if (currentKeys.has("l")) {
 		rotate(0, 1, 0, -angle);
 		updateLight();
+	}
+
+	if (selectMode == SelectMode.SingleBlock) {
+		await updateSelector();
 	}
 
 	camera.updateMatrix();
@@ -285,6 +305,66 @@ export function startKeyEvents() {
 	};
 };
 
+
+
+// Block selection
+
+
+enum SelectMode {
+	None = 0,
+	SingleBlock = 1,
+};
+
+
+let selectMode = SelectMode.None;
+
+
+export function updateSelectMode(mode: SelectMode) {
+	console.log(mode);
+	selectMode = mode;
+	switch (mode) {
+		case SelectMode.None:
+			camera.layers.mask = 0b01;
+			//console.log('none');
+
+		case SelectMode.SingleBlock:
+			camera.layers.mask = 0b11;
+			//console.log('singleblock');
+	}
+	renderFrame();
+	console.log(camera.layers);
+}
+
+
+const selectorGeometry = new THREE.BoxGeometry(1.01, 1.01, 1.01);
+const selectorMaterial = new THREE.MeshBasicMaterial({
+	color: new THREE.Color(0x888888),
+	transparent: true,
+	opacity: 0.6,
+});
+let selector = new THREE.Mesh(selectorGeometry, selectorMaterial);
+selector.layers.set(1);
+scene.add(selector);
+
+
+async function updateSelector() {
+	selector.position.copy(camera.position);
+	selector.quaternion.copy(camera.quaternion);
+	selector.translateZ(-5);
+	selector.position.set(
+		Math.round(selector.position.x),
+		Math.round(selector.position.y) - 2,
+		Math.round(selector.position.z),
+	);
+	selector.rotation.set(0, 0, 0);
+	selector.updateMatrix();
+	console.log(selector.position);
+}
+//window.setInterval(updateSelector, 1000);
+
+
+
+// Initialize some stuff
 
 
 forceRenderFrame();

@@ -35,6 +35,7 @@ type alias Model =
 type Menu
     = MainMenu
     | SaveWorld { fileName : String }
+    | SelectSingleBlock
 
 
 type Visibility
@@ -80,7 +81,11 @@ update msg model =
 
         UpdateMenu menu ->
             ( { model | menu = menu }
-            , Cmd.none
+            , Cmd.batch
+                [ Port.selectionState <| Debug.log "new mode" <| case menu of
+                    SelectSingleBlock -> 1
+                    _ -> 0
+                ]
             )
 
         SaveWorldMsg fileName ->
@@ -240,6 +245,9 @@ menuTitle menu =
         SaveWorld _ ->
             "Save World"
 
+        SelectSingleBlock ->
+            "Select block"
+
 
 viewInspector : Model -> InspectorView
 viewInspector model =
@@ -248,6 +256,10 @@ viewInspector model =
             { back = Nothing
             , body =
                 [ button
+                    model.theme
+                    { btn | iconName = "cube", label = "Select block" }
+                    ( UpdateMenu SelectSingleBlock )
+                , button
                     model.theme
                     { btn | iconName = "file-download", label = "Save world..." }
                     ( UpdateMenu <| SaveWorld
@@ -271,50 +283,10 @@ viewInspector model =
                     ( SaveWorldMsg fileName )
                 ]
             }
-    {-case model.currentTab of
-        Collapsed ->
-            []
 
-        DebugView ->
-            [ heading H1 "Debug view"
-            , bodyText <| Debug.toString model.world
-            ]
-
-        Saver { fileName } ->
-            [ heading H1 "Save world"
-            , button
-                model.theme
-                { btn | iconName = "file-download", label = "Save" }
-                ( SaveWorld fileName )
-            ]-}
-
-
-{-inspectorButtons : Model -> List ( Element Msg )
-inspectorButtons model =
-    let
-        currentIndex : Int
-        currentIndex =
-            case model.currentTab of
-                Collapsed -> 0
-                DebugView -> 1
-                Saver _ -> 2
-
-        tbtn : String -> Tab -> Int -> Element Msg
-        tbtn =
-            tabButton model.theme currentIndex
-    in
-        [ tbtn "caret-down" Collapsed 0
-        , tbtn "project-diagram" DebugView 1
-        , tbtn "file-download" ( Saver initSaver ) 2
-        ]
-
-
-tabButton : Theme -> Int -> String -> Tab -> Int -> Element Msg
-tabButton theme currentIndex iconName initTab index =
-    button
-        theme
-        { btn
-        | iconName = iconName
-        , active = ( index == currentIndex )
-        }
-        ( SwitchTab initTab )-}
+        SelectSingleBlock ->
+            { back = Just MainMenu
+            , body =
+                [
+                ]
+            }
