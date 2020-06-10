@@ -33,6 +33,22 @@ port saveWorld : { fileName : String, xml : String } -> Cmd msg
 
 
 
+-- Extensions
+
+
+type alias SingleBlockAction =
+    { id : Int
+    , name : String
+    , icon : String
+    , url : String
+    }
+
+port newSingleBlockAction : ( SingleBlockAction -> msg ) -> Sub msg
+
+port doSingleBlockAction : { url : String, id : Int } -> Cmd msg
+
+
+
 -- 3D world rendering and interaction
 
 

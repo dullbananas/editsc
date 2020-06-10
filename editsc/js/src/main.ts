@@ -87,7 +87,6 @@ app.ports.parseChunks.subscribe(async function() {
 			return;
 		}
 
-		await extension.load("https://editsc.pythonanywhere.com/dulldevBasics.js");
 
 		// Importing is done
 		initRender();
@@ -97,6 +96,11 @@ app.ports.parseChunks.subscribe(async function() {
 
 
 app.ports.startRendering.subscribe(function() {
+	// Elm app is now in the Editor page
+	extension.load(
+		"https://editsc.pythonanywhere.com/dulldevBasics.js", app
+	);
+
 	app.ports.progress.send({
 		soFar: 0,
 		total: world.chunkLength,
@@ -117,7 +121,7 @@ app.ports['continue'].subscribe(function(i: number) {
 					total: world.chunkLength,
 					message: "Creating geometry",
 				});
-			}, 3);
+			}, 50);
 		});
 	}
 });
@@ -141,7 +145,6 @@ app.ports.saveWorld.subscribe(function(arg: {fileName: string, xml: string}): vo
 	const rootDir: string = arg.fileName.split(".")[0] + "/";
 
 	zip.file(rootDir+"Project.xml", arg.xml);
-	//zip.file(rootDir+"Chunks32h.dat", world.makeArrayBuffer());
 	zip.file(rootDir+"Chunks32h.dat", world.arrayBuffer);
 
 	zip.generateAsync({type:'blob'}).then(function(blob: Blob) {
@@ -151,3 +154,27 @@ app.ports.saveWorld.subscribe(function(arg: {fileName: string, xml: string}): vo
 
 
 app.ports.selectionState.subscribe(rendering.updateSelectMode);
+
+
+app.ports.doSingleBlockAction.subscribe(function(action: any) {
+	const pos = rendering.selector.position;
+	const block = world.getBlockAt(-pos.z, pos.y, pos.x);
+
+	if (block == undefined) {
+		window.alert("Block is out of bounds");
+		return;
+	}
+
+	/*rendering.scene.remove(rendering.chunkGroups[block.x]![block.z]!);
+	rendering.forceRenderFrame();
+	return;*/
+
+	extension.extensions[action.url]!.worker.postMessage({
+		kind: 'singleBlockAction',
+		actionId: action.id,
+		x: -pos.z,
+		y: pos.y,
+		z: pos.x,
+		blockValue: block,
+	});
+});

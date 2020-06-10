@@ -28,6 +28,7 @@ type alias Model =
     , theme : Theme
     , menu : Menu
     , chunksToRender : List Int
+    , singleBlockActions : List Port.SingleBlockAction
     --, jsInfo : String
     }
 
@@ -56,6 +57,7 @@ init world =
         , theme = Light
         , menu = MainMenu
         , chunksToRender = []
+        , singleBlockActions = []
         }
         ( Port.startRendering () )
 
@@ -69,6 +71,8 @@ type Msg
     | UpdateMenu Menu
     | SaveWorldMsg String
     | Progress Port.Progress
+    | NewSingleBlockAction Port.SingleBlockAction
+    | DoSingleBlockAction { url : String, id : Int }
 
 
 update : Msg -> Model -> ( Model, Cmd msg )
@@ -82,7 +86,7 @@ update msg model =
         UpdateMenu menu ->
             ( { model | menu = menu }
             , Cmd.batch
-                [ Port.selectionState <| Debug.log "new mode" <| case menu of
+                [ Port.selectionState <| case menu of
                     SelectSingleBlock -> 1
                     _ -> 0
                 ]
@@ -105,12 +109,24 @@ update msg model =
             in Tuple.pair
                 { model
                 | uiVisibility =
-                    if done then Collapsed else Loading <|
+                    if done then Expanded else Loading <|
                         progress.message ++ ": "
                             ++ String.fromInt progress.soFar
                             ++ "/" ++ String.fromInt progress.total
                 }
                 ( if done then Cmd.none else Port.continue progress.soFar )
+
+        NewSingleBlockAction action ->
+            Tuple.pair
+                { model
+                | singleBlockActions = action :: model.singleBlockActions
+                }
+                Cmd.none
+
+        DoSingleBlockAction action ->
+            Tuple.pair
+                model
+                ( Port.doSingleBlockAction action )
 
 
 -- Subscriptions
@@ -120,6 +136,7 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ Port.progress Progress
+        , Port.newSingleBlockAction NewSingleBlockAction
         ]
 
 
@@ -216,7 +233,12 @@ body model =
                     [ width fill
                     ]
 
-                    [ heading H1 <| menuTitle model.menu
+                    [ column
+                        [ spacing 8
+                        , alignTop
+                        , paddingXY 0 6
+                        ]
+                        <| ( heading H1 <| menuTitle model.menu ) :: back
                     , el [ alignRight, alignTop ]
                         ( button
                             model.theme
@@ -225,8 +247,7 @@ body model =
                         )
                     ]
 
-                ] ++ back ++
-                [ column
+                , column
                     [ spacing 16
                     , width fill
                     ]
@@ -287,6 +308,13 @@ viewInspector model =
         SelectSingleBlock ->
             { back = Just MainMenu
             , body =
-                [
-                ]
+                List.map ( singleBlockBtn model.theme ) model.singleBlockActions
             }
+
+
+singleBlockBtn : Theme -> Port.SingleBlockAction -> Element Msg
+singleBlockBtn theme { id, name, icon, url } =
+    button
+        theme
+        { btn | iconName = icon, label = name }
+        ( DoSingleBlockAction { url = url, id = id } )

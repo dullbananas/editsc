@@ -15,7 +15,8 @@ main =
             [ margin zero
             , padding zero
             , overflow hidden
-            , backgroundColor (rgb 128 128 128)
+            --, backgroundColor (rgb 128 128 128)
+            , backgroundColor (rgb 255 255 255)
             ]
 
         , each [ id "world-canvas", {-id "ui",-} html, body ]

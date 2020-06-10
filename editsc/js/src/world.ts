@@ -13,6 +13,96 @@ export class World {
 	arrayBuffer: ArrayBuffer;
 
 
+	// Takes coordinates and returns the chunk that contains it
+	/*getChunkWith(x: number, z: number): Chunk | undefined {
+		for (let chunk of this.chunks) {
+			const chunkXStart = chunk.x * 16;
+			const chunkZStart = chunk.z * 16;
+
+			const chunkXEnd = chunkXStart + 15;
+			const chunkZEnd = chunkXStart + 15;
+
+			const xIsCorrect = chunkXStart <= x && x <= chunkXEnd;
+			const zIsCorrect = chunkZStart <= z && z <= chunkZEnd;
+
+			if (xIsCorrect && zIsCorrect) {
+				return chunk;
+			}
+		}
+
+		return undefined;
+	}*/
+	getBlockAt(x: number, y: number, z: number): number | undefined {
+		const coords = getChunkCoords(x, z);
+		const chunk = this.getChunkAt(x, z);
+
+		if (chunk) {
+			return chunk.getBlock(getBlockIndex(
+				coords.blockZ, y, coords.blockX
+			));
+		}
+
+		return undefined;
+	}
+
+
+	setBlockAt(x: number, y: number, z: number, value: number) {
+		const coords = getChunkCoords(x, z);
+		const chunk = this.getChunkAt(x, z);
+
+		if (chunk) {
+			chunk.setBlock(getBlockIndex(
+				coords.blockZ, y, coords.blockX
+			), value);
+		}
+	}
+
+
+	getChunkAt(x: number, z: number): Chunk | undefined {
+		const coords = getChunkCoords(x, z);
+
+		for (let chunk of this.chunks) {
+			//if (chunk.x==coords.chunkX && chunk.z==coords.chunkZ) {
+
+			//const chunkXStart = chunk.x * 16;
+			//const chunkZStart = chunk.z * 16;
+			//const chunkXStart = (chunk.x-1) * 16;
+			//const chunkZStart = (chunk.z-1) * 16;
+
+			//const chunkXEnd = chunkXStart + 15;
+			//const chunkZEnd = chunkZStart + 15;
+			//const chunkXEnd = chunkXStart - 15;
+			//const chunkZEnd = chunkZStart - 15;
+
+			//const xIsCorrect = chunkXStart<=x && x<=chunkXEnd;
+			//const zIsCorrect = chunkZStart<=z && z<=chunkZEnd;
+			//const xIsCorrect = chunkXStart>=x && x>=chunkXEnd;
+			//const zIsCorrect = chunkZStart>=z && z>=chunkZEnd;
+			const xIsCorrect = chunk.x == (x - coords.blockX)/16
+			const zIsCorrect = chunk.z == (z - coords.blockZ)/16
+
+			//console.log(69);
+			//console.log([chunkXStart,chunkZStart,chunkXEnd,chunkZEnd]);
+			//console.log([x,z]);
+			//console.log([xIsCorrect,zIsCorrect]);
+			//console.log(coords);
+
+			if (xIsCorrect && zIsCorrect) {
+				//const blockX = x - chunk.x*16;
+				//const blockZ = z - chunk.z*16;
+				//console.log({x:blockX,z:blockZ});
+				return chunk/*.getBlock(getBlockIndex(
+					coords.blockX,
+					y,
+					coords.blockZ,
+				))!*/;
+			}
+		}
+
+		return undefined;
+	}
+
+
 	constructor(arrayBuffer: ArrayBuffer | null) {
 		this.chunks = [];
 
@@ -64,6 +154,14 @@ export class Chunk {
 			+ (index << 2)
 			//, LittleEndian
 			, true
+		);
+	}
+
+
+	setBlock(index: number, value: number) {
+		this.view.setUint32(
+			16 + (index << 2),
+			value, true
 		);
 	}
 
@@ -227,4 +325,29 @@ function clamp(num: number, min: number, max: number): number {
 		return min;
 	}
 	return num;
+}
+
+
+function getChunkCoords(x: number, z: number): {
+	//chunkX: number,
+	//chunkZ: number,
+	blockX: number, // 0 to 15
+	blockZ: number, // 0 to 15
+} {
+	while (x < 0) {
+		x += 16;
+	}
+	while (z < 0) {
+		z += 16;
+	}
+	//const chunkX = Math.floor(x / 16);
+	//const chunkZ = Math.floor(z / 16);
+	return {
+		//chunkX: chunkX,
+		//hunkZ: chunkZ,
+		//blockX: x - chunkX*16,
+		//blockZ: z - chunkZ*16,
+		blockX: (x) % 16,
+		blockZ: (z) % 16,
+	};
 }

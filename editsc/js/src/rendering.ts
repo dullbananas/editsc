@@ -14,6 +14,8 @@ Layers
 	0: Almost everything
 	1: Single block selection box
 
+nevermind
+
 */
 
 
@@ -29,11 +31,12 @@ scene.frustumCulled = false;
 
 
 let camera = new THREE.PerspectiveCamera(
-	75, // field of view
+	70, // field of view
 	window.innerWidth / window.innerHeight, // aspect ratio
 	0.1, // near clipping plane
 	128, // far clipping plane
 );
+camera.matrixAutoUpdate = false;
 
 
 let renderer = new THREE.WebGLRenderer({
@@ -42,21 +45,31 @@ let renderer = new THREE.WebGLRenderer({
 	antialias: true,
 	powerPreference: 'low-power',
 });
+renderer.physicallyCorrectLights = false;
+
 const pixelDensity: number = Math.trunc(window.devicePixelRatio);
 
 
 
 // Lights & fog
-const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.0);
-const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.1);
+
+
+const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1);
+
+const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.2);
+directionalLight.matrixAutoUpdate = false;
+
 directionalLight.target = new THREE.Object3D();
+directionalLight.target.matrixAutoUpdate = false;
+
 scene.add(ambientLight, directionalLight.target, directionalLight);
+
 scene.fog = new THREE.Fog(0xf5f5f5, 96, 128);
 
 
 
 // chunkGroups[x][z] holds the geometry for that chunk
-let chunkGroups: Record<
+export let chunkGroups: Record<
 	number, Record<
 		number, THREE.Group | undefined
 	> | undefined
@@ -69,14 +82,20 @@ export async function renderChunk(chunk: world.Chunk/*, btype: BlockType*/) {
 	if(!chunkGroups[chunk.x]) {
 		chunkGroups[chunk.x] = {};
 	}
-	if(!(chunkGroups[chunk.x]![chunk.z])) {
+	if(chunkGroups[chunk.x]![chunk.z]) {
+		scene.remove(chunkGroups[chunk.x]![chunk.z]!);
+	}
+	group = new THREE.Group();
+	scene.add(group);
+	chunkGroups[chunk.x]![chunk.z] = group;
+	/*if(!(chunkGroups[chunk.x]![chunk.z])) {
 		group = new THREE.Group();
 		scene.add(group);
 		chunkGroups[chunk.x]![chunk.z] = group;
 	}
 	else {
 		group = chunkGroups[chunk.x]![chunk.z]!;
-	}
+	}*/
 
 	//blockTypes.forEach(function(btype: BlockType) {
 	for (let btype of blockTypes) {
@@ -127,6 +146,7 @@ export async function renderChunk(chunk: world.Chunk/*, btype: BlockType*/) {
 				break;
 		}
 	}
+	console.log(chunkGroups);
 }
 
 
@@ -141,13 +161,16 @@ export function initCameraPosition() {
 			48,
 			z,
 		);
+		camera.updateMatrix();
 		camera.lookAt(
-			x,
+			x + 1,
 			48,
 			z + 1,
 		);
 	}
 	camera.updateMatrix();
+	camera.updateMatrixWorld(true);
+	camera.matrixWorldNeedsUpdate = true;
 }
 
 
@@ -159,6 +182,7 @@ let rotationVector = new THREE.Vector3(0, 0, 0);
 function rotate(x: number, y: number, z: number, angle: number) {
 	rotationVector.set(x, y, z);
 	camera.rotateOnWorldAxis(rotationVector, angle);
+	camera.matrixWorldNeedsUpdate = true;
 }
 
 
@@ -173,11 +197,12 @@ async function renderFrame() {
 	//let moveDist: number = 24 / (1000/millisPerFrame);
 	let moveDist: number = 0.024 * millisPerFrame;
 	//let angle: number = Math.PI / 2 / (1000/millisPerFrame);
-	let angle: number = 0.0016 * millisPerFrame;
+	//let angle: number = 0.0016 * millisPerFrame;
+	let angle: number = 0.0024 * millisPerFrame;
 
 	if (currentKeys.has("shift")) {
 		moveDist *= 0.35;
-		angle *= 0.5;
+		angle *= 0.35;
 	}
 
 	if (currentKeys.has("i")) {
@@ -231,6 +256,7 @@ async function updateLight() {
 	directionalLight.target.rotateX(0.01); // look up
 	directionalLight.target.translateZ(-1); // move forward
 
+	directionalLight.target.updateMatrix();
 	directionalLight.updateMatrix();
 }
 //window.setInterval(updateLight, 100)
@@ -290,11 +316,13 @@ export function startKeyEvents() {
 			if (key == "u") {
 				camera.rotateX(Math.PI/-8);
 				camera.updateMatrix();
+				camera.matrixWorldNeedsUpdate = true;
 				updateLight();
 			}
 			if (key == "o") {
 				camera.rotateX(Math.PI/8);
 				camera.updateMatrix();
+				camera.matrixWorldNeedsUpdate = true;
 				updateLight();
 			}
 		}
@@ -320,30 +348,40 @@ let selectMode = SelectMode.None;
 
 
 export function updateSelectMode(mode: SelectMode) {
-	console.log(mode);
 	selectMode = mode;
 	switch (mode) {
 		case SelectMode.None:
-			camera.layers.mask = 0b01;
-			//console.log('none');
+			selector.visible = false;
+			break;
 
 		case SelectMode.SingleBlock:
-			camera.layers.mask = 0b11;
-			//console.log('singleblock');
+			updateSelector();
+			selector.visible = true;
+			break;
 	}
-	renderFrame();
-	console.log(camera.layers);
+	forceRenderFrame();
 }
 
 
-const selectorGeometry = new THREE.BoxGeometry(1.01, 1.01, 1.01);
-const selectorMaterial = new THREE.MeshBasicMaterial({
-	color: new THREE.Color(0x888888),
-	transparent: true,
-	opacity: 0.6,
-});
-let selector = new THREE.Mesh(selectorGeometry, selectorMaterial);
-selector.layers.set(1);
+const selectorSize =
+	1.05;
+
+const selectorGeometry =
+	new THREE.BoxBufferGeometry(selectorSize, selectorSize, selectorSize);
+
+const selectorMaterial =
+	new THREE.MeshLambertMaterial({
+		color: new THREE.Color(0x888888),
+		transparent: true,
+		opacity: 0.85,
+	});
+
+export let selector =
+	new THREE.Mesh(selectorGeometry, selectorMaterial);
+
+selector.matrixAutoUpdate = false;
+selector.visible = false;
+
 scene.add(selector);
 
 
@@ -353,12 +391,12 @@ async function updateSelector() {
 	selector.translateZ(-5);
 	selector.position.set(
 		Math.round(selector.position.x),
-		Math.round(selector.position.y) - 2,
+		Math.round(selector.position.y - 1.5),
 		Math.round(selector.position.z),
 	);
 	selector.rotation.set(0, 0, 0);
 	selector.updateMatrix();
-	console.log(selector.position);
+	//console.log(selector.position);
 }
 //window.setInterval(updateSelector, 1000);
 

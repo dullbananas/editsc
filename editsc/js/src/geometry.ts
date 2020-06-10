@@ -26,6 +26,8 @@ async function newTexture(btype: BlockType): Promise<THREE.Texture> {
 	//let result = texture.clone();
 	//result.needsUpdate = true;
 
+	//result.encoding = THREE.sRGBEncoding;
+
 	result.repeat.x = result.repeat.y = 1/16;
 	result.magFilter = THREE.NearestFilter; // pixelated appearane
 
