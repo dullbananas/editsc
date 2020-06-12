@@ -1,4 +1,5 @@
-import * as THREE from 'three';
+//import * as THREE from 'three';
+//declare const THREE: THREE;
 
 import * as main from './main';
 import * as world from './world';

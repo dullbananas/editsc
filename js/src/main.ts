@@ -1,5 +1,7 @@
-const JSZip = require('jszip');
-const download = require('downloadjs');
+//const JSZip = require('jszip');
+declare const JSZip: any;
+//const download = require('downloadjs');
+declare const download: any;
 
 import {World} from './world';
 import * as rendering from './rendering';
@@ -21,7 +23,7 @@ export let world: World = new World(null);
 // Initialize Elm
 
 
-let Elm = require('./Main.elm').Elm;
+declare let Elm: any;
 
 
 export let app = Elm.Main.init({
