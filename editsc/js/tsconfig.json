@@ -1,17 +1,19 @@
 {
   "compilerOptions": {
     "noImplicitAny": true,
-    "module": "AMD",
+    "module": "commonjs",
     "moduleResolution": "node",
-    "target": "ES2016",
+    "target": "es6",
     "allowJs": true,
     "checkJs": false,
-    "outFile": "../static/build/main.js",
+    "outDir": "../static/",
     "incremental": true,
-    "listFiles": false,
+    "listFiles": true,
     "listEmittedFiles": true,
     "strictNullChecks": true,
-    "allowUmdGlobalAccess": true,
-    "types": ["jszip", "downloadjs"],
   },
+  "exclude": [
+    "node_modules",
+    "src/old",
+  ],
 }
