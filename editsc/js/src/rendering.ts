@@ -187,18 +187,43 @@ function rotate(x: number, y: number, z: number, angle: number) {
 
 
 async function renderFrame() {
-	if (currentKeys.size == 0) {
+	if (
+		currentKeys.size == 0
+		&& touchMovement1.x == 0
+		&& touchMovement1.y == 0
+		&& touchMovement2.x == 0
+		&& touchMovement2.y == 0
+	) {
 		return;
 	}
 	if (millisPerFrame == 0) {
 		return;
 	}
 
-	//let moveDist: number = 24 / (1000/millisPerFrame);
 	let moveDist: number = 0.024 * millisPerFrame;
-	//let angle: number = Math.PI / 2 / (1000/millisPerFrame);
-	//let angle: number = 0.0016 * millisPerFrame;
 	let angle: number = 0.0024 * millisPerFrame;
+
+	camera.translateX(touchMovement1.x * 0.05);
+	camera.translateZ(touchMovement1.y * 0.05);
+
+	if (touchMovement2.x != 0) {
+		rotate(0, 1, 0, touchMovement2.x * -0.005);
+		updateLight();
+	}
+
+	if (touchMovement2.y > 80) {
+		camera.rotateX(Math.PI/-8);
+		updateLight();
+		touchMovement2.y = 0;
+	}
+
+	if (touchMovement2.y < -80) {
+		camera.rotateX(Math.PI/8);
+		updateLight();
+		touchMovement2.y = 0;
+	}
+	//rotate(1, 0, 0, touchMovement2.y * -0.005);
+	//camera.rotateX(touchMovement2.y * -0.005);
 
 	if (currentKeys.has("shift")) {
 		moveDist *= 0.35;
@@ -237,8 +262,31 @@ async function renderFrame() {
 	}
 
 	camera.updateMatrix();
+	camera.matrixWorldNeedsUpdate = true;
 	//camera.updateProjectionMatrix();
 	await forceRenderFrame();
+
+	touchMovement1.x = 0;
+	touchMovement1.y = 0;
+	touchMovement2.x = 0;
+}
+
+
+// Resets every frame
+let touchMovement1 = {x: 0, y: 0}; // 1 finger
+let touchMovement2 = {x: 0, y: 0}; // 2 fingers
+
+
+export function initTouchControls(app: any) {
+	app.ports.moveCamera.subscribe(function(vec: {x: number, y: number}) {
+		touchMovement1.x += vec.x;
+		touchMovement1.y += vec.y;
+	});
+	app.ports.rotateCamera.subscribe(function(vec: {x: number, y: number}) {
+		touchMovement2.x += vec.x;
+		touchMovement2.y += vec.y;
+		console.log(touchMovement2);
+	});
 }
 
 

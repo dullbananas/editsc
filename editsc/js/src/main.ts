@@ -101,6 +101,8 @@ app.ports.startRendering.subscribe(function() {
 		"https://editsc.pythonanywhere.com/dulldevBasics.js", app
 	);
 
+	rendering.initTouchControls(app);
+
 	app.ports.progress.send({
 		soFar: 0,
 		total: world.chunkLength,

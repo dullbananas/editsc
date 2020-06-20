@@ -16,6 +16,8 @@ import Element.Background as Background
 import Element.Region as Region
 import Element.Font as Font
 import Html exposing (Html)
+import Html.Attributes
+import Touch
 
 
 
@@ -29,6 +31,7 @@ type alias Model =
     , menu : Menu
     , chunksToRender : List Int
     , singleBlockActions : List Port.SingleBlockAction
+    , touch : Touch.Model Msg
     --, jsInfo : String
     }
 
@@ -58,6 +61,10 @@ init world =
         , menu = MainMenu
         , chunksToRender = []
         , singleBlockActions = []
+        , touch = Touch.initModel
+            [ Touch.onMove { fingers = 1 } MovedOneFinger
+            , Touch.onMove { fingers = 2 } MovedTwoFingers
+            ]
         }
         ( Port.startRendering () )
 
@@ -69,13 +76,18 @@ init world =
 type Msg
     = ToggleUi Visibility
     | UpdateMenu Menu
+
     | SaveWorldMsg String
+    | DoSingleBlockAction { url : String, id : Int }
     | Progress Port.Progress
     | NewSingleBlockAction Port.SingleBlockAction
-    | DoSingleBlockAction { url : String, id : Int }
+
+    | TouchMsg Touch.Msg
+    | MovedOneFinger Float Float
+    | MovedTwoFingers Float Float
 
 
-update : Msg -> Model -> ( Model, Cmd msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ToggleUi visibility ->
@@ -128,6 +140,24 @@ update msg model =
                 model
                 ( Port.doSingleBlockAction action )
 
+        TouchMsg touchMsg ->
+            Touch.update
+                touchMsg
+                model.touch
+                ( \touchModel -> { model | touch = touchModel } )
+
+        MovedOneFinger x y ->
+            Tuple.pair
+                model
+                ( Port.moveCamera { x = x, y = y } )
+
+
+        MovedTwoFingers x y ->
+            Tuple.pair
+                model
+                ( Port.rotateCamera { x = x, y = y } )
+
+
 
 -- Subscriptions
 
@@ -158,6 +188,11 @@ view model =
         [ height fill
         , id "ui"
         , clipY
+        , behindContent <| html <|
+            Touch.element
+                [ Html.Attributes.style "width" "100vw"
+                , Html.Attributes.style "height" "100vh"
+                ] TouchMsg
         ]
         ( body model )
 
@@ -177,12 +212,14 @@ type alias InspectorView =
 body : Model -> Element Msg
 body model =
     column
-        [ height fill
-        , paddingXY 16 16
+        [ paddingXY 16 16
         , alignRight
         , alignTop
         , width <| maximum (512-128-64) fill
         , spacing 4
+        , height <| case model.uiVisibility of
+            Expanded -> fill
+            _ -> shrink
         ]
 
         [ case model.uiVisibility of

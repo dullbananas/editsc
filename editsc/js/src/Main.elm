@@ -62,6 +62,7 @@ update message model =
         ( EditorMsg msg, Editor editor ) ->
             Editor.update msg editor
                 |> Tuple.mapFirst Editor
+                |> Tuple.mapSecond ( Cmd.map EditorMsg )
 
         _ ->
             ( model, Cmd.none )

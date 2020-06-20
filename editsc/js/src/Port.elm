@@ -65,3 +65,7 @@ port continue : Int -> Cmd msg
 port startRendering : () -> Cmd msg
 
 port selectionState : Int -> Cmd msg
+
+port moveCamera : { x : Float, y : Float } -> Cmd msg
+
+port rotateCamera : { x : Float, y : Float } -> Cmd msg
