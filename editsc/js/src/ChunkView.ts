@@ -6,11 +6,7 @@ import BlockType from './Block';
 
 
 export default class ChunkView {
-	//sendToElm: any;
-
 	constructor(canvas: HTMLCanvasElement) {
-		//this.sendToElm = sendToElm;
-
 		this.initScene();
 		this.initCamera();
 		this.renderNeeded = true;
@@ -47,7 +43,6 @@ export default class ChunkView {
 
 		this.updateSize();
 		window.onresize = () => {
-			//console.log(this);
 			this.updateSize();
 
 			// This is needed to make sure the size is correct
@@ -88,19 +83,16 @@ export default class ChunkView {
 		this.scene.add(new THREE.AmbientLight(0xffffff, 1));
 		// directional light
 		this.directionalLight = new THREE.DirectionalLight(0xffffff, 0.2);
-		//this.directionalLight.matrixAutoUpdate = false;
+		this.directionalLight.matrixAutoUpdate = false;
 		// directional light target
 		this.directionalLight.target = new THREE.Object3D();
-		//this.directionalLight.target.matrixAutoUpdate = false;
+		this.directionalLight.target.matrixAutoUpdate = false;
 		// add directional light
 		this.scene.add(this.directionalLight.target, this.directionalLight);
 	}
 
 	refresh() {
 		this.renderNeeded = true;
-		/*window.requestAnimationFrame(() => {
-			this.renderer.render(this.scene, this.camera);
-		});*/
 	}
 
 	// Holds groups that contain geometry for each chunk.
@@ -111,7 +103,6 @@ export default class ChunkView {
 		> | undefined
 	>;
 	async updateChunk(chunk: Chunk) {
-		console.log('1');
 		if (!this.chunkGroups[chunk.x]) {
 			this.chunkGroups[chunk.x] = {};
 		}
@@ -121,20 +112,15 @@ export default class ChunkView {
 		const group = new THREE.Group();
 		this.scene.add(group);
 		this.chunkGroups[chunk.x]![chunk.z] = group;
-		console.log('2');
 
 		console.log(BlockType.all);
 		for (const btype of BlockType.all) {
 			const condition = (b: number) => btype.matchesBlockValue(b);
-			console.log('3');
 			if ((await chunk.count(condition)) == 0) {
-				console.log('ooooo');
 				continue;
 			}
-			console.log('eeee');
 
 			const faceCount: number = await chunk.countFaces(condition);
-			console.log('4');
 
 			const mesh: THREE.InstancedMesh = await btype.chunkMesh(faceCount);
 			mesh.position.set(chunk.z << 4, 0, -(chunk.x << 4));
@@ -156,14 +142,11 @@ export default class ChunkView {
 					meshIndex++;
 				}
 			}, condition);
-			console.log('5');
 
 			mesh.updateMatrix();
 			mesh.instanceMatrix.needsUpdate = true;
 			group.add(mesh);
-			console.log('6');
 			this.refresh();
-			console.log('7');
 		}
 	}
 
@@ -187,7 +170,6 @@ export default class ChunkView {
 		if (chunk) {
 			if (i == 0) {
 				this.initCameraPosition(chunk.x, chunk.z);
-				alert(this.camera.position.x+","+this.camera.position.z);
 			}
 			await this.updateChunk(chunk);
 			console.log((i+1)+"/"+world.chunks.length);
@@ -195,28 +177,6 @@ export default class ChunkView {
 				await this.initWorldHelp(world, i+1);
 			}, 100);
 		}
-		/*const chunk0 = world.chunks[0];
-
-		if (chunk0) {
-			const x = chunk0.x * 16;
-			const z = chunk0.z * -16;
-			this.camera.position.set(x, 48, z);
-			this.camera.lookAt(x+1, 48, z+1);
-			this.camera.updateMatrix();
-		}
-		console.log("0/0");
-		let i = 0;
-		window.setTimeout(() => {
-			const chunk = world.chunks[i];
-			if (chunk) {
-				this.
-			}
-		}, 100)
-		let i = 0;
-		for (const chunk in world.chunks) {
-			await this.updateChunk(chunk);
-			console.log(i+"/"+world.chunks.length);
-		}*/
 	}
 
 	// Adjustments to be performed on the next frame

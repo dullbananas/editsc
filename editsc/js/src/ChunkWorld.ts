@@ -136,12 +136,7 @@ export class Chunk {
 	// Count the number of blocks that satisfy a condition.
 	async count(condition: (block: number) => boolean): Promise<number> {
 		let result = 0;
-		/*this.forEach(function() {
-			result++;
-		}, condition);*/
-		console.log('count lol');
 		for (let i = 0; i < 65536; i++) {
-			//console.log(i);
 			if (condition(this.getBlock(i)!)) {
 				result++;
 			}
@@ -152,14 +147,6 @@ export class Chunk {
 
 	// Like count() but counts the amount of visible block faces
 	async countFaces(condition: (block: number) => boolean): Promise<number> {
-		/*const faces: Array<[number, number, number]> = [
-			[0, 0, -1],
-			[0, 0, 1],
-			[0, -1, 0],
-			[0, 1, 0],
-			[-1, 0, 0],
-			[1, 0, 0],
-		];*/
 		let result = 0;
 
 		for (let face in Block.faceVectors) {
