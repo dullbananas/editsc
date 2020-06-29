@@ -38,7 +38,71 @@ let cssApp = Elm.Styles.init({
 // Ports
 
 
-app.ports.extractZip.subscribe(function(): void {
+type FromElm =
+	| {
+		kind: 'extractScworldFile',
+	}
+	| {
+		kind: 'loadChunksFile',
+	}
+	| {
+		kind: 'switchedToEditor',
+	}
+	| {
+		kind: 'saveScworld',
+		fileName: string,
+		projectFileContent: string,
+	}
+	| {
+		kind: 'doSingleBlockAction',
+		workerUrl: string,
+		id: number,
+	}
+	| {
+		kind: 'setSelectionMode',
+		mode: rendering.SelectionMode,
+	}
+	| {
+		kind: 'adjustCamera',
+		adjustments: Array<rendering.CameraAdjustment>,
+	};
+
+
+app.ports.fromElmPort.subscribe(function(msg: FromElm) {
+	switch (msg.kind) {
+		case 'extractScworldFile':
+			extractScworldFile();
+			break;
+
+		case 'loadChunksFile':
+			loadChunksFile();
+			break;
+
+		case 'switchedToEditor':
+			loadExtensions();
+			startRendering();
+			break;
+
+		case 'saveScworld':
+			saveScworld(msg.fileName, msg.projectFileContent);
+			break;
+
+		case 'doSingleBlockAction':
+			extension.doSingleBlockAction(msg.workerUrl, msg.id);
+			break;
+
+		case 'setSelectionMode':
+			rendering.setSelectionMode(msg.mode);
+			break;
+
+		case 'adjustCamera':
+			rendering.adjustCamera(msg.adjustments);
+			break;
+	}
+});
+
+
+function extractScworldFile() {
 	function zipErr(err: string) {
 		app.ports.extractionError.send(err);
 	}
@@ -71,10 +135,10 @@ app.ports.extractZip.subscribe(function(): void {
 			zipErr("You must upload exactly one file.");
 			break;
 	}
-});
+}
 
 
-app.ports.parseChunks.subscribe(async function() {
+function loadChunksFile() {
 	if (chunksFileEntry) {
 		let arrayBuffer: ArrayBuffer = await chunksFileEntry.async('arraybuffer');
 		try {
@@ -92,7 +156,7 @@ app.ports.parseChunks.subscribe(async function() {
 		initRender();
 		app.ports.chunksReady.send(null);
 	}
-});
+}
 
 
 app.ports.startRendering.subscribe(function() {

@@ -46,39 +46,48 @@ init =
 
 
 type Msg
-    = StartImporting
+    {-= StartImporting
     | GotProjectFile String
     | ExtractionError String
     | ChunksError String
-    | ChunksReady
+    | ChunksReady-}
+    = PortMsg Port.DecoderResult
+    | ImportButtonClicked
 
 
 update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
-    case msg of
-        ExtractionError error ->
-            ( Error <| "Could not read scworld file: " ++ error, Cmd.none )
+    Debug.log "importer model" <| case msg of
+        ImportButtonClicked ->
+            ( Extracting, Port.send (Port.ExtractScworldFile) )
 
-        ChunksError error ->
-            ( Error <| "Could not read chunks file: " ++ error, Cmd.none )
+        PortMsg ( Ok portMsg ) ->
+            case portMsg of
+                Port.GotProjectFile content ->
+                    {-case World.fromXmlString content of
+                        Ok world ->
+                            ( WaitingForChunks world, Port.parseChunks () )
+                        Err error ->
+                            ( Error <| "Could not read project file: " ++ ConversionError.toString error, Cmd.none )-}
+                    ( WaitingForChunks content, Port.send (Port.LoadChunksFile) )
 
-        StartImporting ->
-            ( Extracting, Port.extractZip () )
+                Port.ChunksFileLoaded ->
+                    case model of
+                        WaitingForChunks world ->
+                            ( SwitchToEditor world, Cmd.none )
 
-        GotProjectFile content ->
-            {-case World.fromXmlString content of
-                Ok world ->
-                    ( WaitingForChunks world, Port.parseChunks () )
-                Err error ->
-                    ( Error <| "Could not read project file: " ++ ConversionError.toString error, Cmd.none )-}
-            ( WaitingForChunks content, Port.parseChunks () )
+                        _ ->
+                            ( model, Cmd.none )
 
-        ChunksReady ->
-            case model of
-                WaitingForChunks world ->
-                    ( SwitchToEditor world, Cmd.none )
+                Port.ImportError message ->
+                    ( Error message, Cmd.none )
+
                 _ ->
                     ( model, Cmd.none )
+
+        PortMsg ( Err error ) ->
+            Debug.log "port decoder error" error
+                |> always ( model, Cmd.none )
 
 
 willSwitchToEditor : Model -> Maybe String
@@ -98,10 +107,12 @@ willSwitchToEditor model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Port.gotProjectFile GotProjectFile
+        {-[ Port.gotProjectFile GotProjectFile
         , Port.extractionError ExtractionError
         , Port.chunksError ChunksError
         , Port.chunksReady ( always ChunksReady )
+        ]-}
+        [ Port.sub PortMsg
         ]
 
 
@@ -132,7 +143,7 @@ body model =
         , fileInput "scworld-input"
         , el
             [ width <| px 120 ]
-            <| button Light { btn | iconName = "file-import", label = "Import" } StartImporting
+            <| button Light { btn | iconName = "file-import", label = "Import" } ImportButtonClicked
         , viewStatus model
         ]
 

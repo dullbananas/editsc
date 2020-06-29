@@ -56,7 +56,7 @@ init : String -> ( Model, Cmd Msg )
 init world =
     Tuple.pair
         { world = world
-        , uiVisibility = Loading "Loading"
+        , uiVisibility = Expanded
         , theme = Light
         , menu = MainMenu
         , chunksToRender = []
@@ -66,7 +66,7 @@ init world =
             , Touch.onMove { fingers = 2 } MovedTwoFingers
             ]
         }
-        ( Port.startRendering () )
+        ( Port.send Port.SwitchedToEditor )
 
 
 
@@ -78,9 +78,11 @@ type Msg
     | UpdateMenu Menu
 
     | SaveWorldMsg String
-    | DoSingleBlockAction { url : String, id : Int }
-    | Progress Port.Progress
-    | NewSingleBlockAction Port.SingleBlockAction
+
+    | DoSingleBlockAction { workerUrl : String, id : Int }
+    {- | Progress Port.Progress
+    | NewSingleBlockAction Port.SingleBlockAction-}
+    | PortMsg Port.DecoderResult
 
     | TouchMsg Touch.Msg
     | MovedOneFinger Float Float
@@ -98,22 +100,23 @@ update msg model =
         UpdateMenu menu ->
             ( { model | menu = menu }
             , Cmd.batch
-                [ Port.selectionState <| case menu of
-                    SelectSingleBlock -> 1
-                    _ -> 0
+                [ Port.send <| Port.SetSelectionMode <| case menu of
+                    SelectSingleBlock -> Port.SelectingSingleBlock
+                    _ -> Port.NotSelecting
                 ]
             )
 
         SaveWorldMsg fileName ->
             ( model
-            , Port.saveWorld
-                { fileName = fileName
-                --, xml = World.toXmlString model.world
-                , xml = model.world
-                }
+            , Port.send <|
+                Port.SaveScworld
+                    { fileName = fileName
+                    --, xml = World.toXmlString model.world
+                    , projectFileContent = model.world
+                    }
             )
 
-        Progress progress ->
+        {-Progress progress ->
             let
                 done : Bool
                 done =
@@ -133,12 +136,28 @@ update msg model =
                 { model
                 | singleBlockActions = action :: model.singleBlockActions
                 }
-                Cmd.none
+                Cmd.none-}
+
+        PortMsg ( Ok portMsg ) ->
+            case portMsg of
+                Port.NewSingleBlockAction action ->
+                    Tuple.pair
+                        { model
+                        | singleBlockActions = action :: model.singleBlockActions
+                        }
+                        Cmd.none
+
+                _ ->
+                    ( model, Cmd.none )
+
+        PortMsg ( Err error ) ->
+            Debug.log "porterr" error
+                |> always ( model, Cmd.none )
 
         DoSingleBlockAction action ->
             Tuple.pair
                 model
-                ( Port.doSingleBlockAction action )
+                ( Port.send (Port.DoSingleBlockAction action) )
 
         TouchMsg touchMsg ->
             Touch.update
@@ -149,13 +168,41 @@ update msg model =
         MovedOneFinger x y ->
             Tuple.pair
                 model
-                ( Port.moveCamera { x = x, y = y } )
+                ( Port.send <| Port.AdjustCamera
+                    [
+                        { x = x*0.05
+                        , y = 0
+                        , z = 0
+                        , mode = Port.Translate
+                        }
+                    ,
+                        { x = 0
+                        , y = 0
+                        , z = y*0.05
+                        , mode = Port.Translate
+                        }
+                    ]
+                )
 
 
         MovedTwoFingers x y ->
             Tuple.pair
                 model
-                ( Port.rotateCamera { x = x, y = y } )
+                ( Port.send <| Port.AdjustCamera
+                    [
+                        { x = 0
+                        , y = -x*0.005
+                        , z = 0
+                        , mode = Port.RotateWorld
+                        }
+                    ,
+                        { x = -y*0.005
+                        , y = 0
+                        , z = 0
+                        , mode = Port.Rotate
+                        }
+                    ]
+                )
 
 
 
@@ -165,8 +212,10 @@ update msg model =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ Port.progress Progress
+        {-[ Port.progress Progress
         , Port.newSingleBlockAction NewSingleBlockAction
+        ]-}
+        [ Port.sub PortMsg
         ]
 
 
@@ -350,8 +399,8 @@ viewInspector model =
 
 
 singleBlockBtn : Theme -> Port.SingleBlockAction -> Element Msg
-singleBlockBtn theme { id, name, icon, url } =
+singleBlockBtn theme { id, name, icon, workerUrl } =
     button
         theme
         { btn | iconName = icon, label = name }
-        ( DoSingleBlockAction { url = url, id = id } )
+        ( DoSingleBlockAction { workerUrl = workerUrl, id = id } )
