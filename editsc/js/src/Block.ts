@@ -140,14 +140,13 @@ const blockTypes: Record<string, BlockType|undefined> = {
 	bedrock: v(1, 1,1),
 	dirt: v(2, 2,0),
 	granite: v(3, 1,0),
-	grass: v(8, 0, 0).color(0x44dd44),
+	grass: v(8, 0,0).color(0x44dd44),
+	oakWood: v(9, 4,1),
+	bitchWood: v(10, 5,7),
+	spruceWood: v(11, 4,7),
+	oakLeaves: v(12, 4,3).color(0x22dd22),
+	birtchLeaves: v(13, 4,3).color(0x44ff00),
+	spruceLeaves: v(14, 4,8).color(0x22cc22),
+	glass: v(15, 3,4),
+	coalOre: v(16, 2,2),
 };
-	/*v(9, 4, 1), // Oak wood
-	v(10, 5, 7), // Bitch wood
-	v(11, 4, 7), // Spruce wood
-	v(12, 4, 3, 0x22dd22), // Oak leaves
-	v(13, 4, 3, 0x44ff00), // Birch leaves
-	v(14, 4, 8, 0x22cc22), // Spruce leaves
-	v(15, 3, 4), // Glass
-	v(16, 2, 2), // Coal ore
-	*/
