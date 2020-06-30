@@ -9,7 +9,6 @@ export default class ChunkView {
 	constructor(canvas: HTMLCanvasElement) {
 		this.initScene();
 		this.initCamera();
-		this.renderNeeded = true;
 		this.initRenderer(canvas);
 
 		this.initLight();
@@ -18,6 +17,8 @@ export default class ChunkView {
 		this.chunkGroups = {};
 
 		this.updateSize();
+		this.renderNeeded = true;
+		this.lightNeedsUpdate = true;
 		this.renderLoop();
 	}
 
@@ -175,7 +176,8 @@ export default class ChunkView {
 		this.camera.updateMatrix();
 		this.camera.lookAt(x, 127, z);
 		this.camera.updateMatrix();
-		console.log(this.camera.position);
+		this.refresh();
+		this.lightNeedsUpdate = true;
 	}
 
 	async initWorldHelp(world: ChunkWorld, i: number) {
@@ -216,15 +218,18 @@ export default class ChunkView {
 				break;
 			case 'rotate':
 				this.rotateAdjustment.add(this.tmpVec);
+				this.lightNeedsUpdate = true;
 				break;
 			case 'rotateWorld':
 				this.rotateWorldAdjustment.add(this.tmpVec);
+				this.lightNeedsUpdate = true;
 				break;
 		}
 		this.renderNeeded = true;
 	}
 
 	renderNeeded: boolean;
+	lightNeedsUpdate: boolean;
 	renderLoop() {
 		//console.log(this);
 		if (this.renderNeeded) {
@@ -257,6 +262,9 @@ export default class ChunkView {
 			this.camera.updateMatrix();
 			if (this.selectorMesh.visible) {
 				this.updateSelector();
+			}
+			if (this.lightNeedsUpdate) {
+				this.updateLight();
 			}
 			this.renderer.render(this.scene, this.camera);
 		}
@@ -299,6 +307,18 @@ export default class ChunkView {
 		this.refresh();
 	}
 
+	updateLight() {
+		this.directionalLight.position.copy(this.camera.position);
+		this.directionalLight.target.position.copy(this.camera.position);
+		this.directionalLight.target.quaternion.copy(this.camera.quaternion);
+
+		this.directionalLight.target.rotateX(0.01); // look up
+		this.directionalLight.target.translateZ(-1); // move forward
+
+		this.directionalLight.target.updateMatrix();
+		this.directionalLight.updateMatrix();
+	}
+
 	updateSelector() {
 		this.selectorMesh.position.copy(this.camera.position);
 		this.selectorMesh.quaternion.copy(this.camera.quaternion);
@@ -328,28 +348,6 @@ export type CameraAdjustment = {
 export type SelectionMode =
 	| 'none'
 	| 'singleBlock';
-
-
-/*export function initCameraPosition() {
-	camera.updateMatrix();
-	camera.updateMatrixWorld(true);
-	camera.matrixWorldNeedsUpdate = true;
-}*/
-
-
-/*async function updateLight() {
-	directionalLight.position.copy(camera.position);
-	directionalLight.target.position.copy(camera.position);
-	directionalLight.target.quaternion.copy(camera.quaternion);
-
-	directionalLight.target.rotateX(0.01); // look up
-	directionalLight.target.translateZ(-1); // move forward
-
-	directionalLight.target.updateMatrix();
-	directionalLight.updateMatrix();
-}*/
-
-
 
 
 
