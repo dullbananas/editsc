@@ -113,7 +113,7 @@ export default class ChunkView {
 		this.scene.add(group);
 		this.chunkGroups[chunk.x]![chunk.z] = group;
 
-		console.log(BlockType.all);
+		//console.log(BlockType.all);
 		for (const btype of BlockType.all) {
 			const condition = (b: number) => btype.matchesBlockValue(b);
 			if ((await chunk.count(condition)) == 0) {
@@ -175,7 +175,7 @@ export default class ChunkView {
 			console.log((i+1)+"/"+world.chunks.length);
 			window.setTimeout(async () => {
 				await this.initWorldHelp(world, i+1);
-			}, 100);
+			}, 10);
 		}
 	}
 

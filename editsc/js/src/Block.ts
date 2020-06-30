@@ -1,23 +1,35 @@
 import * as THREE from 'three';
 
 
-export type Face =
-	| '+x'
-	| '+y'
-	| '+z'
-	| '-x'
-	| '-y'
-	| '-z';
+export enum Face {
+	PosX = 0,
+	PosY = 1,
+	PosZ = 2,
+	NegX = 3,
+	NegY = 4,
+	NegZ = 5,
+}
+
+//export const faces = [PosX, PosY, PosZ, NegX, NegY, NegZ];
 
 
-export const faceVectors: Record<Face, THREE.Vector3> = {
-	'+x': new THREE.Vector3(0, 0, 1),
-	'+y': new THREE.Vector3(0, 1, 0),
-	'+z': new THREE.Vector3(1, 0, 0),
-	'-x': new THREE.Vector3(0, 0, -1),
-	'-y': new THREE.Vector3(0, -1, 0),
-	'-z': new THREE.Vector3(-1, 0, 0),
-};
+export const faceVectors: Record<Face, THREE.Vector3> = [
+	new THREE.Vector3(0, 0, 1),
+	new THREE.Vector3(0, 1, 0),
+	new THREE.Vector3(1, 0, 0),
+	new THREE.Vector3(0, 0, -1),
+	new THREE.Vector3(0, -1, 0),
+	new THREE.Vector3(-1, 0, 0),
+];
+
+const halfVectors: Record<Face, THREE.Vector3> = [
+	new THREE.Vector3(0, 0, 0.5),
+	new THREE.Vector3(0, 0.5, 0),
+	new THREE.Vector3(0.5, 0, 0),
+	new THREE.Vector3(0, 0, -0.5),
+	new THREE.Vector3(0, -0.5, 0),
+	new THREE.Vector3(-0.5, 0, 0),
+];
 
 
 const tmpObj = new THREE.Object3D();
@@ -29,10 +41,14 @@ export function addFace(
 	x: number, y: number, z: number
 ) {
 	const vec = faceVectors[face];
+	const hvec = halfVectors[face];
 	tmpObj.position.set(
-		x + vec.x*0.5,
+		/*x + vec.x*0.5,
 		y + vec.y*0.5,
-		z - vec.z*0.5,
+		z - vec.z*0.5,*/
+		x + hvec.x,
+		y + hvec.y,
+		z - hvec.z,
 	);
 	tmpObj.lookAt(vec.x+x, vec.y+y, -vec.z+z);
 	tmpObj.updateMatrix();
@@ -46,11 +62,13 @@ export default class BlockType {
 	y: number;
 	_color: number;
 	texture: THREE.Texture;
+	matchesBlockValue: (block: number) => boolean;
 	static all: Array<BlockType> = [];
 	static textureLoader = new THREE.TextureLoader();
 
 	constructor(id: number, x: number, y: number) {
 		this.id = id;
+		this.matchesBlockValue = (block: number) => (block & 0b1111111111) === id;
 		this.x = x;
 		this.y = y;
 		this._color = 0xffffff;
@@ -75,7 +93,7 @@ export default class BlockType {
 		return mesh;
 	}
 
-	matchesBlockValue(block: number): boolean {
+	/*matchesBlockValue(block: number): boolean {
 		/*console.log('maching');
 		const id = (block & 0b1111111111);
 		console.log('got id');
@@ -83,9 +101,9 @@ export default class BlockType {
 		console.log('thisid');
 		const result = id == thisid;
 		console.log('mached');
-		return result;*/
+		return result;* /
 		return (block & 0b1111111111) == this.id;
-	}
+	}*/
 
 	color(color: number) {
 		this._color = color;

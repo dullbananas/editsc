@@ -111,8 +111,8 @@ export class Chunk {
 		//return y + (x << 8) + (z << 12);
 		let result: Array<Block.Face> = [];
 
-		for (let faceName in Block.faceVectors) {
-			const face = faceName as Block.Face;
+		for (let facei = 0; facei < 6; facei++) {
+			const face = facei as Block.Face;
 			const vector: THREE.Vector3 = Block.faceVectors[face];
 			const ox = x + vector.x;
 			const oy = y + vector.y;
@@ -122,8 +122,11 @@ export class Chunk {
 				result.push(face);
 				continue;
 			}
-			const otherIndex: number = getBlockIndex(ox, oy, oz);
-			const otherBlock: number = this.getBlock(otherIndex)!;
+			//const otherIndex: number = getBlockIndex(ox, oy, oz);
+			//const otherBlock: number = this.getBlock(otherIndex)!;
+			const otherBlock: number = this.getBlock(
+				getBlockIndex(ox, oy, oz)
+			)!;
 			if (!condition(otherBlock)) {
 				result.push(face);
 			}
@@ -149,8 +152,8 @@ export class Chunk {
 	async countFaces(condition: (block: number) => boolean): Promise<number> {
 		let result = 0;
 
-		for (let face in Block.faceVectors) {
-			const vector = Block.faceVectors[face as Block.Face];
+		for (let facei = 0; facei < 6; facei++) {
+			const vector = Block.faceVectors[facei as Block.Face];
 			await this.iterBlocks(async (block, x, y, z) => {
 				const ox = x + vector.x;
 				const oy = y + vector.y;
@@ -241,7 +244,18 @@ export function getBlockIndex(x: number, y: number, z: number): number {
 }
 
 
-export function inChunkBounds(x: number, y: number, z: number): boolean {
+function inChunkBounds(x: number, y: number, z: number): boolean {
+	if (x < 0) { return false; }
+	if (z < 0) { return false; }
+	if (x > 15) { return false; }
+	if (z > 15) { return false; }
+	if (y < 0) { return false; }
+	if (y > 255) { return false; }
+	return true;
+}
+
+
+/*export function inChunkBounds(x: number, y: number, z: number): boolean {
 	return clamp(x, 0, 15) == x && clamp(y, 0, 255) == y && clamp(z, 0, 15) == z;
 }
 
@@ -254,7 +268,7 @@ function clamp(num: number, min: number, max: number): number {
 		return min;
 	}
 	return num;
-}
+}*/
 
 
 function getChunkCoords(x: number, z: number): {
