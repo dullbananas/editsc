@@ -153,14 +153,14 @@ export default class ChunkView {
 	async initWorld(world: ChunkWorld) {
 		window.setTimeout(async () => {
 			await this.initWorldHelp(world, 0);
-		}, 100);
+		}, 50);
 	}
 
 	initCameraPosition(cx: number, cz: number) {
 		const x = cx * 16;
 		const z = cz * -16;
-		this.camera.position.set(x, 48, z);
-		this.camera.lookAt(x+1, 48, z);
+		this.camera.position.set(x, 128, z);
+		this.camera.lookAt(x+16, 64, z+16);
 		this.camera.updateMatrix();
 		console.log(this.camera.position);
 	}
@@ -172,10 +172,11 @@ export default class ChunkView {
 				this.initCameraPosition(chunk.x, chunk.z);
 			}
 			await this.updateChunk(chunk);
+			this.refresh();
 			console.log((i+1)+"/"+world.chunks.length);
 			window.setTimeout(async () => {
 				await this.initWorldHelp(world, i+1);
-			}, 10);
+			}, 50);
 		}
 	}
 
