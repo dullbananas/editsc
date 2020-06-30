@@ -115,8 +115,10 @@ export default class ChunkView {
 
 		//console.log(BlockType.all);
 		for (const btype of BlockType.all) {
-			const condition = (b: number) => btype.matchesBlockValue(b);
-			if ((await chunk.count(condition)) == 0) {
+			//const condition = (b: number) => btype.matchesBlockValue(b);
+			const condition = (b: number) => btype.id === (b & 0b1111111111);
+			//if ((await chunk.count(condition)) === 0) {
+			if (!( await chunk.any(condition) )) {
 				continue;
 			}
 
@@ -126,22 +128,23 @@ export default class ChunkView {
 			mesh.position.set(chunk.z << 4, 0, -(chunk.x << 4));
 
 			let meshIndex = 0;
-			await chunk.iterBlocks(async function(block, x, y, z) {
-				if (meshIndex == faceCount) {
+			await chunk.iterBlocks(function(block, x, y, z) {
+				/*if (meshIndex >= faceCount) {
 					return;
+				}*/
+				const faces = chunk.blockFaces(condition, x, y, z);
+				for (let facei = 0; facei < 6; facei++) {
+					if (faces & (1<<facei)) {
+						Block.addFace(
+							meshIndex,
+							mesh,
+							facei as Block.Face,
+							x, y, -z
+						);
+						meshIndex++;
+					}
 				}
-				const faces = await chunk.blockFaces(condition, x, y, z);
-				for (const face of faces) {
-					Block.addFace(
-						meshIndex,
-						mesh,
-						//Block.faceVectors[face],
-						face,
-						x, y, -z
-					);
-					meshIndex++;
-				}
-			}, condition);
+			}, (b: number) => condition(b) && meshIndex < faceCount);
 
 			mesh.updateMatrix();
 			mesh.instanceMatrix.needsUpdate = true;
@@ -151,16 +154,26 @@ export default class ChunkView {
 	}
 
 	async initWorld(world: ChunkWorld) {
-		window.setTimeout(async () => {
+		/*window.setTimeout(async () => {
 			await this.initWorldHelp(world, 0);
-		}, 50);
+		}, 50);*/
+		const chunk0 = world.chunks[0];
+		if (chunk0) {
+			this.initCameraPosition(chunk0.x, chunk0.z);
+		}
+		window.setTimeout(() => {
+			for (const chunk of world.chunks) {
+				this.updateChunk(chunk);
+			}
+		}, 100);
 	}
 
 	initCameraPosition(cx: number, cz: number) {
 		const x = cx * 16;
 		const z = cz * -16;
 		this.camera.position.set(x, 128, z);
-		this.camera.lookAt(x+16, 64, z+16);
+		this.camera.updateMatrix();
+		this.camera.lookAt(x, 127, z);
 		this.camera.updateMatrix();
 		console.log(this.camera.position);
 	}

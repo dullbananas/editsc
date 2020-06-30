@@ -81,13 +81,13 @@ export default class BlockType {
 	y: number;
 	_color: number;
 	texture: THREE.Texture;
-	matchesBlockValue: (block: number) => boolean;
+	//matchesBlockValue: (block: number) => boolean;
 	static all: Array<BlockType> = [];
 	static textureLoader = new THREE.TextureLoader();
 
 	constructor(id: number, x: number, y: number) {
 		this.id = id;
-		this.matchesBlockValue = (block: number) => (block & 0b1111111111) === id;
+		//this.matchesBlockValue = (block: number) => (block & 0b1111111111) === id;
 		this.x = x;
 		this.y = y;
 		this._color = 0xffffff;

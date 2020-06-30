@@ -104,22 +104,29 @@ export class Chunk {
 	}
 
 
-	async blockFaces(
+	/*
+	blockFaces returns a bit mask with 1 << Block.Face. For example:
+	0b111001
+	has 0, 3, 4, and 5, or +x, -x, -y, and -z
+	(see the enum Block.Face in Block.ts)
+	*/
+	blockFaces(
 		condition: (block: number) => boolean,
 		x: number, y: number, z: number
-	): Promise<Array<Block.Face>> {
+	): number {
 		//return y + (x << 8) + (z << 12);
-		let result: Array<Block.Face> = [];
+		let result = 0;
 
 		for (let facei = 0; facei < 6; facei++) {
-			const face = facei as Block.Face;
-			const vector: THREE.Vector3 = Block.faceVectors[face];
+			//const face = facei as Block.Face;
+			const vector: THREE.Vector3 = Block.faceVectors[facei as Block.Face];
 			const ox = x + vector.x;
 			const oy = y + vector.y;
 			const oz = z + vector.z;
 			//face.z *= -1;
 			if (!inChunkBounds(ox, oy, oz)) {
-				result.push(face);
+				//result.push(face);
+				result = result | (1<<facei);
 				continue;
 			}
 			//const otherIndex: number = getBlockIndex(ox, oy, oz);
@@ -128,11 +135,23 @@ export class Chunk {
 				getBlockIndex(ox, oy, oz)
 			)!;
 			if (!condition(otherBlock)) {
-				result.push(face);
+				result = result | (1<<facei);
+				//result.push(face);
 			}
 		}
 
 		return result;
+	}
+
+
+	// Return true if any blocks satisfies the condition
+	async any(condition: (block: number) => boolean): Promise<boolean> {
+		for (let i = 0; i < 65536; i++) {
+			if (condition(this.getBlock(i)!)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 
@@ -154,7 +173,7 @@ export class Chunk {
 
 		for (let facei = 0; facei < 6; facei++) {
 			const vector = Block.faceVectors[facei as Block.Face];
-			await this.iterBlocks(async (block, x, y, z) => {
+			await this.iterBlocks((block, x, y, z) => {
 				const ox = x + vector.x;
 				const oy = y + vector.y;
 				const oz = z + vector.z;
@@ -174,7 +193,7 @@ export class Chunk {
 
 
 	async iterBlocks(
-		callback: (value: number, x: number, y: number, z: number) => Promise<void>,
+		callback: (value: number, x: number, y: number, z: number) => void,
 		condition = (anyBlock: number) => true,
 	) {
 		//return y + (x << 8) + (z << 12);
@@ -194,7 +213,7 @@ export class Chunk {
 			//const block: number = this.getBlock(getBlockIndex(x, y, z))!;
 			const block: number = this.getBlock(x + y + z)!;
 			if (condition(block)) {
-				await callback(block, x>>8, y, z>>12);
+				callback(block, x>>8, y, z>>12);
 			}
 		}}}
 	}
@@ -228,7 +247,7 @@ export class Chunk {
 
 
 
-export function getBlockIndex(x: number, y: number, z: number): number {
+function getBlockIndex(x: number, y: number, z: number): number {
 	/*x = clamp(x, 0, 15);
 	y = clamp(y, 0, 255);
 	z = clamp(z, 0, 15);*/
