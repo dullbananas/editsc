@@ -34,13 +34,30 @@ const halfVectors: Record<Face, THREE.Vector3> = [
 
 const tmpObj = new THREE.Object3D();
 
+
+const rotations: Array<THREE.Euler> = [];
+
+
+for (let facei = 0; facei < 6; facei++) {
+	const face = facei as Face;
+	const vec = faceVectors[face];
+	const hvec = halfVectors[face];
+	//tmpObj.position.set(hvec.x, hvec.y, -hvec.z);
+	tmpObj.position.set(0, 0, 0);
+	tmpObj.lookAt(vec.x, vec.y, -vec.z);
+	tmpObj.updateMatrix();
+	rotations.push(tmpObj.rotation.clone());
+	console.log(tmpObj.rotation);
+}
+console.log(rotations);
+
+
 export function addFace(
 	meshIndex: number,
 	mesh: THREE.InstancedMesh,
 	face: Face,
 	x: number, y: number, z: number
 ) {
-	const vec = faceVectors[face];
 	const hvec = halfVectors[face];
 	tmpObj.position.set(
 		/*x + vec.x*0.5,
@@ -50,7 +67,9 @@ export function addFace(
 		y + hvec.y,
 		z - hvec.z,
 	);
-	tmpObj.lookAt(vec.x+x, vec.y+y, -vec.z+z);
+	//const vec = faceVectors[face];
+	//tmpObj.lookAt(vec.x+x, vec.y+y, -vec.z+z);
+	tmpObj.rotation.copy(rotations[face]!);
 	tmpObj.updateMatrix();
 	mesh.setMatrixAt(meshIndex, tmpObj.matrix);
 }
