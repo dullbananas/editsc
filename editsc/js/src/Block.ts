@@ -140,6 +140,7 @@ const blockTypes: Record<string, BlockType|undefined> = {
 	bedrock: v(1, 1,1),
 	dirt: v(2, 2,0),
 	granite: v(3, 1,0),
+	sand: v(7, 2,1),
 	grass: v(8, 0,0).color(0x44dd44),
 	oakWood: v(9, 4,1),
 	bitchWood: v(10, 5,7),
@@ -149,4 +150,6 @@ const blockTypes: Record<string, BlockType|undefined> = {
 	spruceLeaves: v(14, 4,8).color(0x22cc22),
 	glass: v(15, 3,4),
 	coalOre: v(16, 2,2),
+	planks: v(21, 4,0),
+	clay: v(72, 8,0),
 };

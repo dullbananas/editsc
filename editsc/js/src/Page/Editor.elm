@@ -32,7 +32,7 @@ type alias Model =
     , chunksToRender : List Int
     , singleBlockActions : List Port.SingleBlockAction
     , touch : Touch.Model Msg
-    --, jsInfo : String
+    , progress : Float
     }
 
 
@@ -65,6 +65,7 @@ init world =
             [ Touch.onMove { fingers = 1 } MovedOneFinger
             , Touch.onMove { fingers = 2 } MovedTwoFingers
             ]
+        , progress = 0.0
         }
         ( Port.send Port.SwitchedToEditor )
 
@@ -145,6 +146,11 @@ update msg model =
                         { model
                         | singleBlockActions = action :: model.singleBlockActions
                         }
+                        Cmd.none
+
+                Port.Progress portion ->
+                    Tuple.pair
+                        { model | progress = portion }
                         Cmd.none
 
                 _ ->
@@ -336,9 +342,12 @@ body model =
                 , column
                     [ spacing 16
                     , width fill
-                    ]
+                    ] <|
 
-                    ( inspectorView.body )
+                    ( if model.progress < 1.0
+                        then [ bodyText <| String.fromInt (floor<|model.progress*100) ++ "%" ]
+                        else []
+                    ) ++ inspectorView.body
                 ]
         ]
 

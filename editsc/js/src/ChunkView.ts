@@ -15,11 +15,12 @@ export default class ChunkView {
 		this.initAdjustmentVectors();
 		this.initSelector();
 		this.chunkGroups = {};
+		this.updateCount = 0;
 
 		this.updateSize();
 		this.renderNeeded = true;
 		this.lightNeedsUpdate = true;
-		this.renderLoop();
+		//this.renderLoop();
 	}
 
 	private scene: THREE.Scene;
@@ -27,16 +28,16 @@ export default class ChunkView {
 		this.scene = new THREE.Scene();
 		this.scene.autoUpdate = true;
 		this.scene.frustumCulled = false;
-		this.scene.fog = new THREE.Fog(0xf5f5f5, 96, 128);
+		this.scene.fog = new THREE.Fog(0xf5f5f5, 256-32, 256);
 		this.scene.background = new THREE.Color(0xf5f5f5);
 	}
 
 	private camera: THREE.PerspectiveCamera;
 	initCamera() {
-		const fieldOfView = 70;
+		const fieldOfView = 60;
 		const aspectRatio = window.innerWidth / window.innerHeight;
 		const nearClippingPlane = 0.1;
-		const farClippingPlane = 128;
+		const farClippingPlane = 256;
 		this.camera = new THREE.PerspectiveCamera(
 			fieldOfView, aspectRatio, nearClippingPlane, farClippingPlane
 		);
@@ -103,6 +104,7 @@ export default class ChunkView {
 			THREE.Group | undefined
 		> | undefined
 	>;
+	private updateCount: number;
 	async updateChunk(chunk: Chunk) {
 		if (!this.chunkGroups[chunk.x]) {
 			this.chunkGroups[chunk.x] = {};
@@ -150,37 +152,63 @@ export default class ChunkView {
 			mesh.updateMatrix();
 			mesh.instanceMatrix.needsUpdate = true;
 			group.add(mesh);
-			this.refresh();
+			//this.refresh();
+			this.renderer.render(this.scene, this.camera);
 		}
+		group.updateMatrix();
+		this.updateCount++;
+		console.log("rendered chunk # "+this.updateCount)
 	}
 
-	async initWorld(world: ChunkWorld) {
+	async initWorld(
+		world: ChunkWorld,
+		onprogress: (soFar: number, max: number) => void,
+	) {
 		/*window.setTimeout(async () => {
 			await this.initWorldHelp(world, 0);
 		}, 50);*/
-		const chunk0 = world.chunks[0];
+		console.log("total chunk count: "+world.chunks.length);
+		/*const chunk0 = world.chunks[0];
 		if (chunk0) {
 			this.initCameraPosition(chunk0.x, chunk0.z);
-		}
-		window.setTimeout(() => {
+		}*/
+		window.setTimeout(async () => {
+			//// World geometry is generated 2 chunks at a time
+			//let promises: Array<Promise<void>> = [];
 			for (const chunk of world.chunks) {
-				this.updateChunk(chunk);
+				/*promises.push(this.updateChunk(chunk));
+				if (promises.length >= 2) {
+					await Promise.all(promises);
+					await (new Promise( r => setTimeout(r, 200) ));
+					promises = [];
+				}*/
+				await this.updateChunk(chunk);
+				if (this.updateCount % 4 === 0) {
+					this.initCameraPosition(chunk.z << 4, -(chunk.x << 4));
+					onprogress(this.updateCount, world.chunks.length);
+					await (new Promise( r => setTimeout(r, 10) ));
+				}
 			}
-		}, 100);
+			//await Promise.all(promises);
+			onprogress(this.updateCount, world.chunks.length);
+			console.log("rendered all chunks");
+		}, 500);
+		this.renderLoop();
+
 	}
 
-	initCameraPosition(cx: number, cz: number) {
-		const x = cx * 16;
-		const z = cz * -16;
+	initCameraPosition(x: number, z: number) {
+		//const x = cx * 16;
+		//const z = cz * -16;
 		this.camera.position.set(x, 128, z);
 		this.camera.updateMatrix();
 		this.camera.lookAt(x, 127, z);
 		this.camera.updateMatrix();
 		this.refresh();
-		this.lightNeedsUpdate = true;
+		//this.lightNeedsUpdate = true;
 	}
 
-	async initWorldHelp(world: ChunkWorld, i: number) {
+	/*async initWorldHelp(world: ChunkWorld, i: number) {
 		const chunk = world.chunks[i];
 		if (chunk) {
 			if (i == 0) {
@@ -193,7 +221,7 @@ export default class ChunkView {
 				await this.initWorldHelp(world, i+1);
 			}, 50);
 		}
-	}
+	}*/
 
 	// Adjustments to be performed on the next frame
 	translateAdjustment: THREE.Vector3;
@@ -350,10 +378,6 @@ export type SelectionMode =
 	| 'singleBlock';
 
 
-
-// Controls
-
-
 // Holds the keys that are currently being pressed
 /*export let currentKeys: Set<String> = new Set();
 
@@ -363,7 +387,6 @@ export function startKeyEvents() {
 		const key: string = event.key.toLowerCase();
 		if (!currentKeys.has(key)) {
 			currentKeys.add(key);
-
 			if (key == "u") {
 				camera.rotateX(Math.PI/-8);
 				camera.updateMatrix();
@@ -378,7 +401,6 @@ export function startKeyEvents() {
 			}
 		}
 	};
-
 	document.body.onkeyup = function(event) {
 		currentKeys.delete(event.key.toLowerCase());
 	};

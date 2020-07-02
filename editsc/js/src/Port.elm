@@ -133,6 +133,9 @@ type ToElm
     --Extensions
     | NewSingleBlockAction SingleBlockAction
 
+    --Misc
+    | Progress Float
+
 
 type alias SingleBlockAction =
     { id : Int
@@ -162,23 +165,27 @@ decodeKind : String -> D.Decoder ToElm
 decodeKind kind =
     case kind of
         "gotProjectFile" ->
-            D.field "content" D.string
-                |> D.map GotProjectFile
+            D.map GotProjectFile
+                ( D.field "content" D.string )
 
         "chunksFileLoaded" ->
             D.succeed ChunksFileLoaded
 
         "importError" ->
-            D.field "message" D.string
-                |> D.map ImportError
+            D.map ImportError
+                ( D.field "message" D.string )
 
         "newSingleBlockAction" ->
-            D.map4 ( SingleBlockAction )
-                ( D.field "id" D.int )
-                ( D.field "name" D.string )
-                ( D.field "icon" D.string )
-                ( D.field "workerUrl" D.string )
-                |> D.map NewSingleBlockAction
+            D.map NewSingleBlockAction
+                <| D.map4 ( SingleBlockAction )
+                    ( D.field "id" D.int )
+                    ( D.field "name" D.string )
+                    ( D.field "icon" D.string )
+                    ( D.field "workerUrl" D.string )
+
+        "progress" ->
+            D.map Progress
+                ( D.field "portion" D.float )
 
         _ ->
             D.fail <| "Invalid kind: " ++ kind
