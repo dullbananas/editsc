@@ -196,26 +196,21 @@ export class Chunk {
 		callback: (value: number, x: number, y: number, z: number) => void,
 		condition = (anyBlock: number) => true,
 	) {
-		//return y + (x << 8) + (z << 12);
-
-		//for (let x = 0; x < 16; x++) {
-		//for (let y = 0; y < 256; y++) {
-		//for (let z = 0; z < 16; z++) {
-
-		//for (let x = 0; x < (16<<8); x+=(1<<8)) {
-		//for (let y = 0; y < 256; y++) {
-		//for (let z = 0; z < (16<<12); z+=(1<<12)) {
-
-		for (let x = 0; x < 4096; x+=256) {
+		/*for (let x = 0; x < 4096; x+=256) {
 		for (let y = 0; y < 256; y++) {
 		for (let z = 0; z < 65536; z+=4096) {
-			//const blockIndex: number = getBlockIndex(x, y, z);
-			//const block: number = this.getBlock(getBlockIndex(x, y, z))!;
 			const block: number = this.getBlock(x + y + z)!;
 			if (condition(block)) {
 				callback(block, x>>8, y, z>>12);
 			}
-		}}}
+		}}}*/
+		for (let i = 0; i < 65536; i++) {
+			const block: number = this.getBlock(i)!;
+			if (condition(block)) {
+				// Coordinates are extracted from block index
+				callback(block, (i>>8)&15, i&255, (i>>12)&15);
+			}
+		}
 	}
 
 
