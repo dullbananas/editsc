@@ -10,11 +10,13 @@ module Page.Editor exposing
 import Port
 import Ui exposing (..)
 import World exposing (World)
+import BlocksData
 
 import Element exposing (..)
 import Element.Background as Background
 import Element.Region as Region
 import Element.Font as Font
+import Element.Lazy as Lazy
 import Html exposing (Html)
 import Html.Attributes
 import Touch
@@ -33,6 +35,7 @@ type alias Model =
     , singleBlockActions : List Port.SingleBlockAction
     , touch : Touch.Model Msg
     , progress : Float
+    , blockTypes : List BlocksData.BlockType
     }
 
 
@@ -66,8 +69,13 @@ init world =
             , Touch.onMove { fingers = 2 } MovedTwoFingers
             ]
         , progress = 0.0
+        , blockTypes = []
         }
-        ( Port.send Port.SwitchedToEditor )
+        ( Cmd.batch
+            [ Port.send Port.SwitchedToEditor
+            , BlocksData.request GotBlocksData
+            ]
+        )
 
 
 
@@ -79,6 +87,8 @@ type Msg
     | UpdateMenu Menu
 
     | SaveWorldMsg String
+
+    | GotBlocksData ( BlocksData.RequestResult )
 
     | DoSingleBlockAction { workerUrl : String, id : Int }
     {- | Progress Port.Progress
@@ -116,6 +126,17 @@ update msg model =
                     , projectFileContent = model.world
                     }
             )
+
+        GotBlocksData result ->
+            case result of
+                Ok xml ->
+                    ( { model | blockTypes = BlocksData.parse xml |> Debug.log "parsed" |> Result.withDefault [] }
+                    , Cmd.none
+                    )
+
+                Err err ->
+                    Debug.log "blocksdata error" err
+                        |> always ( model, Cmd.none )
 
         {-Progress progress ->
             let
@@ -287,7 +308,7 @@ body model =
                 column
                     ( {-explain Debug.todo ::-} uiAttrs model.theme )
 
-                    [ button
+                    [ Lazy.lazy3 button
                         model.theme
                         { btn | iconName = "caret-down" }
                         ( ToggleUi Expanded )
@@ -306,7 +327,7 @@ body model =
                                 []
 
                             Just parent ->
-                                List.singleton <| backButton
+                                List.singleton <| Lazy.lazy2 backButton
                                     ( menuTitle parent )
                                     ( UpdateMenu parent )
 
@@ -332,7 +353,7 @@ body model =
                         ]
                         <| ( heading H1 <| menuTitle model.menu ) :: back
                     , el [ alignRight, alignTop ]
-                        ( button
+                        ( Lazy.lazy3 button
                             model.theme
                             { btn | iconName = "caret-up" }
                             ( ToggleUi Collapsed )
@@ -393,7 +414,7 @@ viewInspector model =
                     ( \newName ->
                         UpdateMenu <| SaveWorld { fileName = newName }
                     )
-                , button
+                , Lazy.lazy3 button
                     model.theme
                     { btn | iconName = "file-download", label = "Save" }
                     ( SaveWorldMsg fileName )
