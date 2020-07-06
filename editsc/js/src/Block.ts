@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+import {BlockCondition} from './ChunkWorker';
+
 
 export enum Face {
 	PosX = 0,
@@ -77,6 +79,7 @@ export function addFace(
 
 export default class BlockType {
 	id: number;
+	condition: BlockCondition;
 	x: number;
 	y: number;
 	_color: number;
@@ -88,6 +91,7 @@ export default class BlockType {
 
 	constructor(id: number, x: number, y: number) {
 		this.id = id;
+		this.condition = { blockId: id };
 		//this.matchesBlockValue = (block: number) => (block & 0b1111111111) === id;
 		this.x = x;
 		this.y = y;

@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import ChunkWorld, {Chunk} from './ChunkWorld';
 import * as Block from './Block';
 import BlockType from './Block';
+import {BlockCondition, WorkerMsg} from './ChunkWorker';
 
 
 export default class ChunkView {
@@ -112,6 +113,9 @@ export default class ChunkView {
 		if(this.chunkGroups[chunk.x]![chunk.z]) {
 			this.scene.remove(this.chunkGroups[chunk.x]![chunk.z]!);
 		}
+
+		const worker: Worker = await chunk.createWorker();
+
 		const group = new THREE.Group();
 		this.scene.add(group);
 		this.chunkGroups[chunk.x]![chunk.z] = group;
@@ -120,12 +124,18 @@ export default class ChunkView {
 		for (const btype of BlockType.all) {
 			//const condition = (b: number) => btype.matchesBlockValue(b);
 			const condition = (b: number) => btype.id === (b & 0b1111111111);
+			const wcondition: BlockCondition = btype.condition;
 			//if ((await chunk.count(condition)) === 0) {
 			if (!( await chunk.any(condition) )) {
 				continue;
 			}
 
-			const faceCount: number = await chunk.countFaces(condition);
+			const faceCountMsg: WorkerMsg = {kind: 'countFaces', condition: wcondition};
+			worker.postMessage(faceCountMsg);
+			const faceCount: number = await new Promise(resolve => {
+				worker.onmessage = event => { resolve(event.data as number) }
+			});
+			//const faceCount: number = await chunk.countFaces(condition);
 
 			const mesh: THREE.InstancedMesh = await btype.chunkMesh(faceCount);
 			mesh.position.set(chunk.z << 4, 0, -(chunk.x << 4));
@@ -155,6 +165,7 @@ export default class ChunkView {
 			//this.refresh();
 			this.renderer.render(this.scene, this.camera);
 		}
+		worker.terminate();
 		group.updateMatrix();
 		this.updateCount++;
 		console.log("rendered chunk # "+this.updateCount)
@@ -164,36 +175,21 @@ export default class ChunkView {
 		world: ChunkWorld,
 		onprogress: (soFar: number, max: number) => void,
 	) {
-		/*window.setTimeout(async () => {
-			await this.initWorldHelp(world, 0);
-		}, 50);*/
+		this.renderLoop();
 		console.log("total chunk count: "+world.chunks.length);
-		/*const chunk0 = world.chunks[0];
+		const chunk0 = world.chunks[0];
 		if (chunk0) {
 			this.initCameraPosition(chunk0.x, chunk0.z);
-		}*/
-		window.setTimeout(async () => {
-			//// World geometry is generated 2 chunks at a time
-			//let promises: Array<Promise<void>> = [];
-			for (const chunk of world.chunks) {
-				/*promises.push(this.updateChunk(chunk));
-				if (promises.length >= 2) {
-					await Promise.all(promises);
-					await (new Promise( r => setTimeout(r, 200) ));
-					promises = [];
-				}*/
-				await this.updateChunk(chunk);
-				if (this.updateCount % 4 === 0) {
-					this.initCameraPosition(chunk.z << 4, -(chunk.x << 4));
-					onprogress(this.updateCount, world.chunks.length);
-					await (new Promise( r => setTimeout(r, 10) ));
-				}
-			}
-			//await Promise.all(promises);
+		}
+		for (const chunk of world.chunks) {
+			await this.updateChunk(chunk);
+			//await (new Promise( r => setTimeout(r, 10) ));
 			onprogress(this.updateCount, world.chunks.length);
-			console.log("rendered all chunks");
-		}, 500);
-		this.renderLoop();
+			/*if (this.updateCount % 4 === 0) {
+				this.initCameraPosition(chunk.z << 4, -(chunk.x << 4));
+			}*/
+		}
+		console.log("rendered all chunks");
 
 	}
 

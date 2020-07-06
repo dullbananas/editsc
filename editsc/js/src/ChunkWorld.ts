@@ -1,5 +1,6 @@
 import BlockType from './Block';
 import * as Block from './Block';
+import {WorkerMsg} from './ChunkWorker';
 import * as THREE from 'three';
 
 
@@ -82,6 +83,17 @@ export class Chunk {
 	x: number;
 	z: number;
 	view: DataView; // References part of the world's ArrayBuffer
+
+
+	async createWorker(): Promise<Worker> {
+		const worker = new Worker("../static/ChunkWorker.js");
+		const message: WorkerMsg = {
+			kind: 'init',
+			chunkData: this.view,
+		};
+		worker.postMessage(message);
+		return worker;
+	}
 
 
 	getBlock(index: number): number | undefined {
@@ -243,16 +255,6 @@ export class Chunk {
 
 
 function getBlockIndex(x: number, y: number, z: number): number {
-	/*x = clamp(x, 0, 15);
-	y = clamp(y, 0, 255);
-	z = clamp(z, 0, 15);*/
-
-	//return y + x * 256 + z * 256 * 16;
-	//return y + x * 256 + z * 4096;
-	/*if (!inChunkBounds(x, y, z)) {
-		throw "invalid coordinates: " + x + ", " + y + ", " + z;
-	}*/
-
 	// y + x*256 + z*256*16
 	return (y) + (x <<8) + (z <<12);
 }
@@ -269,25 +271,7 @@ function inChunkBounds(x: number, y: number, z: number): boolean {
 }
 
 
-/*export function inChunkBounds(x: number, y: number, z: number): boolean {
-	return clamp(x, 0, 15) == x && clamp(y, 0, 255) == y && clamp(z, 0, 15) == z;
-}
-
-
-function clamp(num: number, min: number, max: number): number {
-	if (num > max) {
-		return max;
-	}
-	if (num < min) {
-		return min;
-	}
-	return num;
-}*/
-
-
 function getChunkCoords(x: number, z: number): {
-	//chunkX: number,
-	//chunkZ: number,
 	blockX: number, // 0 to 15
 	blockZ: number, // 0 to 15
 } {
@@ -297,13 +281,7 @@ function getChunkCoords(x: number, z: number): {
 	while (z < 0) {
 		z += 16;
 	}
-	//const chunkX = Math.floor(x / 16);
-	//const chunkZ = Math.floor(z / 16);
 	return {
-		//chunkX: chunkX,
-		//hunkZ: chunkZ,
-		//blockX: x - chunkX*16,
-		//blockZ: z - chunkZ*16,
 		blockX: (x) % 16,
 		blockZ: (z) % 16,
 	};
