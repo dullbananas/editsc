@@ -76,13 +76,13 @@ async function handleMsg(msg: FromElm) {
 			break;
 
 		case 'switchedToEditor':
-			await chunkView.initWorld(chunkWorld, (soFar: number, max: number) => {
+			extensionManager.load("https://editsc.pythonanywhere.com/dulldevBasics.js");
+			chunkView.initWorld(chunkWorld, (soFar: number, max: number) => {
 				sendToElm({
 					kind: 'progress',
 					portion: soFar/max,
 				});
 			});
-			await extensionManager.load("https://editsc.pythonanywhere.com/dulldevBasics.js");
 			break;
 
 		case 'saveScworld':

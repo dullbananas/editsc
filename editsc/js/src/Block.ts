@@ -96,6 +96,7 @@ export default class BlockType {
 		this.x = x;
 		this.y = y;
 		this._color = 0xffffff;
+		this._transparent = false;
 		BlockType.all.push(this);
 
 		this.texture = BlockType.textureLoader.load("../static/blocks.png");

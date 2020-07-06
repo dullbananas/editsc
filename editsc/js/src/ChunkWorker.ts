@@ -8,6 +8,14 @@ export type WorkerMsg =
 		condition: BlockCondition,
 	}
 	| {
+		kind: 'any',
+		condition: BlockCondition,
+	}
+	| {
+		kind: 'getBlockFaces',
+		condition: BlockCondition,
+	}
+	| {
 		kind: 'init',
 		chunkData: DataView,
 	};
@@ -15,6 +23,10 @@ export type WorkerMsg =
 
 function send(msg: any) {
 	(self.postMessage as any)(msg);
+}
+
+function sendt(msg: any, transfer: Array<any>) {
+	(self.postMessage as any)(msg, transfer);
 }
 
 
@@ -36,6 +48,14 @@ self.onmessage = function(event: MessageEvent) {
 	switch (msg.kind) {
 		case 'countFaces':
 			countFaces(msg.condition);
+			break;
+
+		case 'any':
+			anyBlocks(msg.condition);
+			break;
+
+		case 'getBlockFaces':
+			getBlockFaces(msg.condition);
 			break;
 
 		case 'init':
@@ -96,6 +116,48 @@ function countFaces(condition: BlockCondition) {
 		}, isCorrectBlock);
 	}
 	send(result);
+}
+
+
+function getBlockFaces(condition: BlockCondition) {
+	const arr = new Uint8Array(65536);
+	//let i = 0;
+	const isCorrectBlock = checkCondition(condition);
+	iterBlocks((block, x, y, z) => {
+		let faces = 0b000000;
+		for (let facei = 0; facei < 6; facei++) {
+			const vector = faceVectors[facei]!;
+			const ox = x + vector.x;
+			const oy = y + vector.y;
+			const oz = z + vector.z;
+			if (!inChunkBounds(ox, oy, oz)) {
+				faces = faces | (1<<facei);
+				continue;
+			}
+			const otherBlock: number = getBlock(
+				getBlockIndex(ox, oy, oz)
+			)!;
+			if (!isCorrectBlock(otherBlock)) {
+				faces = faces | (1<<facei);
+			}
+		}
+		arr[getBlockIndex(x, y, z)] = faces;
+		//i++;
+	}, isCorrectBlock);
+	sendt(arr.buffer, [arr.buffer])
+}
+
+
+// Check if any blocks satisfy the condition
+function anyBlocks(condition: BlockCondition) {
+	const isCorrectBlock = checkCondition(condition);
+	for (let i = 0; i < 65536; i++) {
+		if (isCorrectBlock(getBlock(i)!)) {
+			send(true);
+			return;
+		}
+	}
+	send(false);
 }
 
 

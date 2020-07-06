@@ -122,29 +122,31 @@ export default class ChunkView {
 
 		//console.log(BlockType.all);
 		for (const btype of BlockType.all) {
-			//const condition = (b: number) => btype.matchesBlockValue(b);
 			const condition = (b: number) => btype.id === (b & 0b1111111111);
 			const wcondition: BlockCondition = btype.condition;
-			//if ((await chunk.count(condition)) === 0) {
-			if (!( await chunk.any(condition) )) {
+
+			// check if any blocks are the right type
+			const anyMsg: WorkerMsg = {kind: 'any', condition: wcondition};
+			worker.postMessage(anyMsg);
+			const anyBlocks: boolean = await new Promise(resolve => {
+				worker.onmessage = event => { resolve(event.data as boolean) }
+			});
+			if (!anyBlocks) {
 				continue;
 			}
 
+			// face count
 			const faceCountMsg: WorkerMsg = {kind: 'countFaces', condition: wcondition};
 			worker.postMessage(faceCountMsg);
 			const faceCount: number = await new Promise(resolve => {
 				worker.onmessage = event => { resolve(event.data as number) }
 			});
-			//const faceCount: number = await chunk.countFaces(condition);
 
 			const mesh: THREE.InstancedMesh = await btype.chunkMesh(faceCount);
 			mesh.position.set(chunk.z << 4, 0, -(chunk.x << 4));
 
 			let meshIndex = 0;
-			await chunk.iterBlocks(function(block, x, y, z) {
-				/*if (meshIndex >= faceCount) {
-					return;
-				}*/
+			/*await chunk.iterBlocks(function(block, x, y, z) {
 				const faces = chunk.blockFaces(condition, x, y, z);
 				for (let facei = 0; facei < 6; facei++) {
 					if (faces & (1<<facei)) {
@@ -157,17 +159,53 @@ export default class ChunkView {
 						meshIndex++;
 					}
 				}
-			}, (b: number) => condition(b) && meshIndex < faceCount);
+			}, (b: number) => condition(b) && meshIndex < faceCount);*/
+			const blockFacesMsg: WorkerMsg = {kind: 'getBlockFaces', condition: wcondition};
+			console.log(69);
+			worker.postMessage(blockFacesMsg);
+			console.log(70);
+			const facesBuffer: ArrayBuffer = await new Promise(resolve => {
+				worker.onmessage = event => { resolve(event.data as ArrayBuffer) }
+			});
+			console.log(71);
+			const blockFaces = new Uint8Array(facesBuffer);
+			console.log(72);
+
+			for (let i = 0; i < 65536; i++) {
+				//console.log(100000000+i);
+				const faces: number = blockFaces[i];
+				if (faces !== 0b000000) {
+					// Extract coordinates from index
+					const x = (i>>8)&15;
+					const y = i&255;
+					const z = -((i>>12)&15);
+					for (let facei = 0; facei < 6; facei++) {
+						if (faces & (1<<facei)) {
+							Block.addFace(
+								meshIndex,
+								mesh,
+								facei as Block.Face,
+								x, y, z
+							);
+							meshIndex++;
+						}
+					}
+				}
+				if (meshIndex > faceCount) {
+					break;
+				}
+			}
 
 			mesh.updateMatrix();
 			mesh.instanceMatrix.needsUpdate = true;
 			group.add(mesh);
 			//this.refresh();
-			this.renderer.render(this.scene, this.camera);
+			//this.renderer.render(this.scene, this.camera);
 		}
 		worker.terminate();
 		group.updateMatrix();
 		this.updateCount++;
+		this.refresh();
 		console.log("rendered chunk # "+this.updateCount)
 	}
 
@@ -177,18 +215,27 @@ export default class ChunkView {
 	) {
 		this.renderLoop();
 		console.log("total chunk count: "+world.chunks.length);
+		//const concurrency = 2;
+
 		const chunk0 = world.chunks[0];
 		if (chunk0) {
-			this.initCameraPosition(chunk0.x, chunk0.z);
+			this.initCameraPosition(chunk0.z << 4, -(chunk0.x << 4));
 		}
+
+		//let promises: Array<Promise<void>> = [];
 		for (const chunk of world.chunks) {
-			await this.updateChunk(chunk);
-			//await (new Promise( r => setTimeout(r, 10) ));
-			onprogress(this.updateCount, world.chunks.length);
-			/*if (this.updateCount % 4 === 0) {
-				this.initCameraPosition(chunk.z << 4, -(chunk.x << 4));
+			/*promises.push(this.updateChunk(chunk));
+			if (promises.length === concurrency) {
+				await Promise.all(promises);
+				promises = [];
+				onprogress(this.updateCount, world.chunks.length);
 			}*/
+			await this.updateChunk(chunk);
+			onprogress(this.updateCount, world.chunks.length);
 		}
+		/*console.log(promises.length);
+		await Promise.all(promises);
+		onprogress(this.updateCount, world.chunks.length);*/
 		console.log("rendered all chunks");
 
 	}
