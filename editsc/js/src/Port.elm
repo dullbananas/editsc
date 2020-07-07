@@ -132,6 +132,7 @@ type ToElm
 
     --Extensions
     | NewSingleBlockAction SingleBlockAction
+    | ShowUi ( List UiComponent )
 
     --Misc
     | Progress Float
@@ -143,6 +144,11 @@ type alias SingleBlockAction =
     , icon : String
     , workerUrl : String
     }
+
+
+type UiComponent
+    = BlockInput { name : String }
+    | Button { name : String, icon : String }
 
 
 sub : ( DecoderResult -> msg ) -> Sub msg
@@ -183,9 +189,37 @@ decodeKind kind =
                     ( D.field "icon" D.string )
                     ( D.field "workerUrl" D.string )
 
+        "showUi" ->
+            D.map ShowUi
+                ( D.field "components" <| D.list uiComponentDecoder )
+
         "progress" ->
             D.map Progress
                 ( D.field "portion" D.float )
 
         _ ->
             D.fail <| "Invalid kind: " ++ kind
+
+
+uiComponentDecoder : D.Decoder UiComponent
+uiComponentDecoder =
+    D.field "kind" D.string
+        |> D.andThen decodeUiComponentKind
+
+
+decodeUiComponentKind : String -> D.Decoder UiComponent
+decodeUiComponentKind kind =
+    case kind of
+        "blockInput" ->
+            D.map BlockInput
+                <| D.map ( \name -> { name = name } )
+                    ( D.field "name" D.string )
+
+        "button" ->
+            D.map Button
+                <| D.map2 ( \name icon -> { name = name, icon = icon } )
+                    ( D.field "name" D.string )
+                    ( D.field "icon" D.string )
+
+        _ ->
+            D.fail <| "Invalid component kind: " ++ kind

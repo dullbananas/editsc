@@ -169,6 +169,10 @@ update msg model =
                         }
                         Cmd.none
 
+                Port.ShowUi components ->
+                    Debug.log "components" components
+                        |> always ( model, Cmd.none )
+
                 Port.Progress portion ->
                     Tuple.pair
                         { model | progress = portion }

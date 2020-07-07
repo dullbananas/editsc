@@ -95,6 +95,13 @@ export default class ExtensionManager {
 				});
 				break;
 
+			case 'showUi':
+				this.sendToElm({
+					kind: 'showUi',
+					components: m.components,
+				});
+				break;
+
 			case 'setBlock':
 				this.chunkWorld.setBlockAt(m.x, m.y, m.z, m.newValue);
 				const chunk = this.chunkWorld.getChunkAt(m.x, m.z);
@@ -138,6 +145,10 @@ type Msg =
 		newValue: number,
 	}
 	| {
+		kind: 'showUi',
+		components: Array<UiComponentMsg>,
+	}
+	| {
 		kind: 'log',
 		value: any,
 	};
@@ -175,15 +186,47 @@ type Block = {
 };
 
 
+type UiComponent =
+	| {
+		kind: 'blockInput',
+		name: string,
+		onchange: (value: number) => void,
+	}
+	| {
+		kind: 'button',
+		name: string,
+		icon: string,
+		onclick: () => void,
+	};
+
+
+// Used to send UI components to Elm
+type UiComponentMsg =
+	| {
+		kind: 'blockInput',
+		name: string,
+	}
+	| {
+		kind: 'button',
+		name: string,
+		icon: string,
+	};
+
+
 type EditscNs = {
 	singleBlockActions: Record<number, (block: Block) => void | undefined>,
 	nextSingleBlockId: number,
+	ui: Array<UiComponent>,
 
 	onmessage: (event: MessageEvent) => void,
+
+	blockInput: (opt: {name: string, onchange: (value: number) => void}) => UiComponent,
+	button: (opt: {name: string, icon: string, onclick: () => void}) => UiComponent,
 
 	log: (value: any) => void,
 	a: (text: string) => void,
 	singleBlockAction: (opt: SingleBlockOpts) => void,
+	showUi: (components: Array<UiComponent>) => void,
 };
 
 
@@ -191,6 +234,7 @@ type EditscNs = {
 function editscNs(): EditscNs { return {
 	singleBlockActions: {},
 	nextSingleBlockId: 0,
+	ui: [],
 
 
 	onmessage: function(event: MessageEvent) {
@@ -234,6 +278,50 @@ function editscNs(): EditscNs { return {
 			default:
 				throw "Invalid message sent to extension";
 		}
+	},
+
+
+	blockInput: function(opt: {name: string, onchange: (value: number) => void}): UiComponent {
+		return {
+			kind: 'blockInput',
+			name: opt.name,
+			onchange: opt.onchange,
+		};
+	},
+
+
+	button: function(opt: {name: string, icon: string, onclick: () => void}): UiComponent {
+		return {
+			kind: 'button',
+			name: opt.name,
+			icon: opt.icon,
+			onclick: opt.onclick,
+		};
+	},
+
+
+	showUi: function(components: Array<UiComponent>) {
+		this.ui = components;
+		const uiMsg: Array<UiComponentMsg> = [];
+		for (const component of components) {
+			switch (component.kind) {
+				case 'blockInput':
+					uiMsg.push({
+						kind: 'blockInput',
+						name: component.name,
+					});
+					break;
+
+				case 'button':
+					uiMsg.push({
+						kind: 'button',
+						name: component.name,
+						icon: component.icon,
+					});
+					break;
+			}
+		}
+		msg({kind: 'showUi', components: uiMsg});
 	},
 
 
