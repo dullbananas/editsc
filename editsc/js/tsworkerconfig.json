@@ -14,7 +14,10 @@
     ],
     "types": [],
   },
-  "files": ["src/ChunkWorker.ts"],
+  "files": [
+  	"src/ChunkWorker.ts",
+  	"src/ExtensionWorker.ts",
+  ],
   "exclude": [
     "node_modules",
     "src/old",

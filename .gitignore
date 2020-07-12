@@ -141,6 +141,7 @@ gen
 node_modules/
 bundle.js
 ChunkWorker.js
+ExtensionWorker.js
 *.tsbuildinfo
 
 
