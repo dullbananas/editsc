@@ -138,28 +138,6 @@ update msg model =
                     Debug.log "blocksdata error" err
                         |> always ( model, Cmd.none )
 
-        {-Progress progress ->
-            let
-                done : Bool
-                done =
-                    progress.soFar == progress.total
-            in Tuple.pair
-                { model
-                | uiVisibility =
-                    if done then Expanded else Loading <|
-                        progress.message ++ ": "
-                            ++ String.fromInt progress.soFar
-                            ++ "/" ++ String.fromInt progress.total
-                }
-                ( if done then Cmd.none else Port.continue progress.soFar )
-
-        NewSingleBlockAction action ->
-            Tuple.pair
-                { model
-                | singleBlockActions = action :: model.singleBlockActions
-                }
-                Cmd.none-}
-
         PortMsg ( Ok portMsg ) ->
             case portMsg of
                 Port.NewSingleBlockAction action ->

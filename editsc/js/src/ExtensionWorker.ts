@@ -120,13 +120,11 @@ class BlockSelection extends Block {
 
 
 const Editsc = new (class EditscNs {
-	singleBlockActions: Record<number, ((selection: BlockSelection) => void) | undefined>;
-	nextSingleBlockId: number;
+	singleBlockActions: Array<(selection: BlockSelection) => void>;
 	ui: Array<UiComponent>;
 
 	constructor() {
-		this.singleBlockActions = {};
-		this.nextSingleBlockId = 0;
+		this.singleBlockActions = [];
 		this.ui = [];
 	}
 
@@ -218,10 +216,8 @@ const Editsc = new (class EditscNs {
 	}
 
 	singleBlockAction(opt: SingleBlockOpts) {
-		const id = this.nextSingleBlockId;
-		this.nextSingleBlockId++;
-
-		this.singleBlockActions[id] = opt.onclick;
+		const id: number = this.singleBlockActions.length;
+		this.singleBlockActions.push(opt.onclick);
 		this.sendMsg({
 			kind: 'newSingleBlockAction',
 			id: id, name: opt.name, icon: opt.icon
