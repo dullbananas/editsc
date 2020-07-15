@@ -4,6 +4,7 @@ module BlocksData exposing
     , RequestResult
     , request
     , parse
+    , typeName
     )
 
 import Http
@@ -12,6 +13,18 @@ import Parser
 import Parser.Advanced
 import Dict exposing (Dict)
 import Maybe.Extra as MaybeE
+
+
+typeName : List BlockType -> Int -> String
+typeName blockTypes id =
+    case blockTypes of
+        [] ->
+            "Unknown"
+
+        x :: xs ->
+            if x.id == id
+                then x.name
+                else typeName xs id
 
 
 type alias BlockType =

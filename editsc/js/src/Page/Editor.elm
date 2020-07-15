@@ -17,9 +17,12 @@ import Element.Background as Background
 import Element.Region as Region
 import Element.Font as Font
 import Element.Lazy as Lazy
+import Element.Border as Border
 import Html exposing (Html)
 import Html.Attributes
 import Touch
+import Array exposing (Array)
+import Task
 
 
 
@@ -43,6 +46,12 @@ type Menu
     = MainMenu
     | SaveWorld { fileName : String }
     | SelectSingleBlock
+    | ExtensionUi
+        { title : String
+        , url : String
+        , components : Array Port.UiComponent
+        , previousMenu : Menu
+        }
 
 
 type Visibility
@@ -83,7 +92,9 @@ init world =
 
 
 type Msg
-    = ToggleUi Visibility
+    = BatchMsg ( List Msg )
+
+    | ToggleUi Visibility
     | UpdateMenu Menu
 
     | SaveWorldMsg String
@@ -91,8 +102,9 @@ type Msg
     | GotBlocksData ( BlocksData.RequestResult )
 
     | DoSingleBlockAction { workerUrl : String, id : Int }
-    {- | Progress Port.Progress
-    | NewSingleBlockAction Port.SingleBlockAction-}
+    | ExtensionButtonClicked String Int
+    | UpdateBlockInput String Int Int
+    | UpdateComponent Int ( Port.UiComponent )
     | PortMsg Port.DecoderResult
 
     | TouchMsg Touch.Msg
@@ -103,6 +115,18 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        BatchMsg [] ->
+            ( model, Cmd.none )
+
+        BatchMsg (x :: xs) ->
+            let
+                ( newModel, cmd ) = update x model
+            in
+                ( newModel, Cmd.batch
+                    [ cmd
+                    , Task.succeed () |> Task.perform ( always (BatchMsg xs) )
+                    ] )
+
         ToggleUi visibility ->
             ( { model | uiVisibility = visibility }
             , Cmd.none
@@ -147,9 +171,16 @@ update msg model =
                         }
                         Cmd.none
 
-                Port.ShowUi components ->
-                    Debug.log "components" components
-                        |> always ( model, Cmd.none )
+                Port.ShowUi url title components ->
+                    Tuple.pair
+                        { model | menu = ExtensionUi
+                            { title = title
+                            , url = url
+                            , components = components
+                            , previousMenu = model.menu
+                            }
+                        }
+                        Cmd.none
 
                 Port.Progress portion ->
                     Tuple.pair
@@ -163,10 +194,33 @@ update msg model =
             Debug.log "porterr" error
                 |> always ( model, Cmd.none )
 
+        UpdateComponent index newComponent ->
+            case model.menu of
+                ExtensionUi ui ->
+                    Tuple.pair
+                        { model
+                        | menu = ExtensionUi
+                            --{ ui | components = mapArrayEl f index ui.components }
+                            { ui | components = Array.set index newComponent ui.components }
+                        } Cmd.none
+
+                _ ->
+                    ( model, Cmd.none )
+
         DoSingleBlockAction action ->
             Tuple.pair
                 model
                 ( Port.send (Port.DoSingleBlockAction action) )
+
+        ExtensionButtonClicked url callbackId ->
+            Tuple.pair
+                model
+                ( Port.send (Port.TriggerButton url callbackId) )
+
+        UpdateBlockInput url callbackId newValue ->
+            Tuple.pair
+                model
+                ( Debug.log "this gonna be sent" <| Port.send (Port.UpdateBlockInput url callbackId newValue) )
 
         TouchMsg touchMsg ->
             Touch.update
@@ -176,7 +230,11 @@ update msg model =
 
         MovedOneFinger x y ->
             Tuple.pair
-                model
+                { model
+                | menu = case model.menu of
+                    ExtensionUi { previousMenu } -> previousMenu
+                    other -> other
+                }
                 ( Port.send <| Port.AdjustCamera
                     [
                         { x = x*0.05
@@ -196,7 +254,11 @@ update msg model =
 
         MovedTwoFingers x y ->
             Tuple.pair
-                model
+                { model
+                | menu = case model.menu of
+                    ExtensionUi { previousMenu } -> previousMenu
+                    other -> other
+                }
                 ( Port.send <| Port.AdjustCamera
                     [
                         { x = 0
@@ -212,6 +274,16 @@ update msg model =
                         }
                     ]
                 )
+
+
+mapArrayEl : ( a -> a ) -> Int -> Array a -> Array a
+mapArrayEl f index array =
+    case Array.get index array of
+        Just item ->
+            Array.set index (f item) array
+
+        Nothing ->
+            array
 
 
 
@@ -245,7 +317,8 @@ view model =
         }
         [ height fill
         , id "ui"
-        , clipY
+        , clip
+        --, scrollbarY
         , behindContent <| html <|
             Touch.element
                 [ Html.Attributes.style "width" "100vw"
@@ -258,6 +331,10 @@ view model =
 uiAttrs : Theme -> List (Attribute Msg)
 uiAttrs theme =
     [ alignRight
+    --, scrollbarY
+    --, height fill
+    --, explain Debug.todo
+    , scrollbarY
     ] ++ box theme
 
 
@@ -269,18 +346,21 @@ type alias InspectorView =
 
 body : Model -> Element Msg
 body model =
-    column
+    el
         [ paddingXY 16 16
         , alignRight
         , alignTop
         , width <| maximum (512-128-64) fill
         , spacing 4
-        , height <| case model.uiVisibility of
-            Expanded -> fill
-            _ -> shrink
+        --, height <| case model.uiVisibility of
+        --    Expanded -> fill
+        --    _ -> shrink
+        --, scrollbarY
+        , clip
+        , height fill
         ]
 
-        [ case model.uiVisibility of
+        <| case model.uiVisibility of
             Loading message ->
                 column
                     ( uiAttrs model.theme )
@@ -319,8 +399,8 @@ body model =
                 (
                     [ spacing 8
                     , width fill
-                    , height <| maximum 384 fill
-                    , scrollbarY
+                    --, height <| maximum (256+128) fill
+                    --, scrollbarY
                     ] ++ uiAttrs model.theme
                 ) <|
 
@@ -352,7 +432,7 @@ body model =
                         else []
                     ) ++ inspectorView.body
                 ]
-        ]
+        --]
 
 
 menuTitle : Menu -> String
@@ -366,6 +446,9 @@ menuTitle menu =
 
         SelectSingleBlock ->
             "Select block"
+
+        ExtensionUi { title } ->
+            title
 
 
 viewInspector : Model -> InspectorView
@@ -408,6 +491,54 @@ viewInspector model =
             , body =
                 List.map ( singleBlockBtn model.theme ) model.singleBlockActions
             }
+
+        ExtensionUi { url, components, previousMenu } ->
+            { back = Just previousMenu
+            , body = Array.indexedMap ( viewComponent model url ) components |> Array.toList
+            }
+
+
+viewComponent : Model -> String -> Int -> Port.UiComponent -> Element Msg
+viewComponent model url index component =
+    case component of
+        Port.Button { name, icon, callbackId } ->
+            Lazy.lazy3 button
+                model.theme
+                { btn | iconName = icon, label = name }
+                ( ExtensionButtonClicked url callbackId )
+
+        Port.BlockInput ({ name, callbackId, value, expanded } as opts) ->
+            column
+                [ spacing 8
+                , Border.width 1
+                , Border.color <| rgba255 0 0 0 0.2
+                , Border.rounded 8
+                , width fill
+                , paddingXY 8 8
+                ]
+                [ heading H2 name
+                {-, Lazy.lazy3 button
+                    model.theme
+                    { btn
+                    | iconName = "pen"
+                    , label = "Type: " ++ BlocksData.typeName model.blockTypes value
+                    }
+                    ( UpdateComponent )-}
+                , dropdownList
+                    { label = "Type"
+                    , options = List.map .id model.blockTypes
+                    , currentOption = value
+                    , optionToString = BlocksData.typeName model.blockTypes
+                    , updateVisibility = \newExpanded -> UpdateComponent index
+                        <| Port.BlockInput { opts | expanded = newExpanded }
+                    , updateValue = \newValue -> BatchMsg
+                        [ UpdateComponent index
+                            <| Port.BlockInput { opts | value = newValue }
+                        , UpdateBlockInput url callbackId newValue
+                        ]
+                    , expanded = expanded
+                    }
+                ]
 
 
 singleBlockBtn : Theme -> Port.SingleBlockAction -> Element Msg

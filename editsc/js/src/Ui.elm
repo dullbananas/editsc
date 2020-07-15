@@ -8,6 +8,7 @@ module Ui exposing
     , icon
     , panel
     , textInput
+    , dropdownList
     , tabButtonRow
     , box
 
@@ -15,6 +16,7 @@ module Ui exposing
     , Theme(..)
     , Button
     , TextInput
+    , DropdownList
 
     , btn
     , txt
@@ -46,12 +48,14 @@ heading level content =
         ( size, levelInt ) =
             case level of
                 H1 -> ( 28, 1 )
+                H2 -> ( 18, 2 )
 
     in
         el
             [ Region.heading levelInt
             , Font.size size
-            , Font.light
+            --, Font.light
+            , Font.medium
             , fontFamily
             ]
             ( text content )
@@ -59,6 +63,7 @@ heading level content =
 
 type HeadingLevel
     = H1
+    | H2
 
 
 bodyText : String -> Element msg
@@ -225,6 +230,47 @@ txt : TextInput
 txt =
     { content = ""
     , name = ""
+    }
+
+
+dropdownList : DropdownList option msg -> Element msg
+dropdownList opt =
+    column
+        [ Border.widthXY 0 1
+        , Border.color <| rgba255 0 0 0 0.1
+        , paddingXY 2 4
+        , spacing 12
+        , width fill
+        ] <|
+        row
+            [ Event.onClick <| opt.updateVisibility <| not opt.expanded
+            , width fill
+            ]
+            [ el [ alignLeft, fontFamily, Font.size 16 ]
+                <| text <| opt.label ++ ": " ++ opt.optionToString opt.currentOption
+            , el [ alignRight, Font.size 16 ] <| icon "caret-down"
+            ]
+        :: if opt.expanded then
+            List.map
+                ( \option ->
+                    el
+                        [ fontFamily
+                        , Font.size 13
+                        , Event.onClick <| opt.updateValue option
+                        ]
+                        <| text <| opt.optionToString option
+                ) opt.options
+        else
+            []
+
+type alias DropdownList option msg =
+    { label : String
+    , options : List option
+    , currentOption : option
+    , optionToString : option -> String
+    , updateVisibility : Bool -> msg
+    , updateValue : option -> msg
+    , expanded : Bool
     }
 
 

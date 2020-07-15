@@ -161,15 +161,15 @@ export default class ChunkView {
 				}
 			}, (b: number) => condition(b) && meshIndex < faceCount);*/
 			const blockFacesMsg: WorkerMsg = {kind: 'getBlockFaces', condition: wcondition};
-			console.log(69);
+			//console.log(69);
 			worker.postMessage(blockFacesMsg);
-			console.log(70);
+			//console.log(70);
 			const facesBuffer: ArrayBuffer = await new Promise(resolve => {
 				worker.onmessage = event => { resolve(event.data as ArrayBuffer) }
 			});
-			console.log(71);
+			//console.log(71);
 			const blockFaces = new Uint8Array(facesBuffer);
-			console.log(72);
+			//console.log(72);
 
 			for (let i = 0; i < 65536; i++) {
 				//console.log(100000000+i);

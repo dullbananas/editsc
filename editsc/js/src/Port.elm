@@ -2,6 +2,7 @@ port module Port exposing (..)
 
 import Json.Encode as E
 import Json.Decode as D
+import Array exposing (Array)
 
 
 
@@ -33,6 +34,8 @@ type FromElm
         { workerUrl : String
         , id : Int
         }
+    | TriggerButton String Int
+    | UpdateBlockInput String Int Int
 
     --Interaction
     | SetSelectionMode SelectionMode
@@ -87,6 +90,19 @@ encode msg =
                 , ( "id", E.int id )
                 ]
 
+        TriggerButton url id ->
+            encodeHelp "triggerButton"
+                [ ( "extensionUrl", E.string url )
+                , ( "callbackId", E.int id )
+                ]
+
+        UpdateBlockInput url id newValue ->
+            encodeHelp "updateBlockInput"
+                [ ( "extensionUrl", E.string url )
+                , ( "callbackId", E.int id )
+                , ( "newValue", E.int newValue )
+                ]
+
         SetSelectionMode NotSelecting ->
             encodeHelp "setSelectionMode"
                 [ ( "mode", E.string "none" )
@@ -132,7 +148,7 @@ type ToElm
 
     --Extensions
     | NewSingleBlockAction SingleBlockAction
-    | ShowUi ( List UiComponent )
+    | ShowUi String String ( Array UiComponent )
 
     --Misc
     | Progress Float
@@ -147,8 +163,8 @@ type alias SingleBlockAction =
 
 
 type UiComponent
-    = BlockInput { name : String }
-    | Button { name : String, icon : String }
+    = BlockInput { name : String, callbackId : Int, value : Int, expanded : Bool }
+    | Button { name : String, icon : String, callbackId : Int }
 
 
 sub : ( DecoderResult -> msg ) -> Sub msg
@@ -190,8 +206,10 @@ decodeKind kind =
                     ( D.field "workerUrl" D.string )
 
         "showUi" ->
-            D.map ShowUi
-                ( D.field "components" <| D.list uiComponentDecoder )
+            D.map3 ShowUi
+                ( D.field "url" D.string )
+                ( D.field "title" D.string )
+                ( D.field "components" <| D.array uiComponentDecoder )
 
         "progress" ->
             D.map Progress
@@ -212,14 +230,18 @@ decodeUiComponentKind kind =
     case kind of
         "blockInput" ->
             D.map BlockInput
-                <| D.map ( \name -> { name = name } )
+                <| D.map4 ( \name id val exp -> { name = name, callbackId = id, value = val, expanded = exp } )
                     ( D.field "name" D.string )
+                    ( D.field "callbackId" D.int )
+                    ( D.succeed 1 )
+                    ( D.succeed False )
 
         "button" ->
             D.map Button
-                <| D.map2 ( \name icon -> { name = name, icon = icon } )
+                <| D.map3 ( \name icon id -> { name = name, icon = icon, callbackId = id } )
                     ( D.field "name" D.string )
                     ( D.field "icon" D.string )
+                    ( D.field "callbackId" D.int )
 
         _ ->
             D.fail <| "Invalid component kind: " ++ kind

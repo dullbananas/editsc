@@ -98,6 +98,17 @@ async function handleMsg(msg: FromElm) {
 			console.log('did action');
 			break;
 
+		case 'triggerButton':
+			extensionManager.triggerButton(msg.extensionUrl, msg.callbackId);
+			break;
+
+		case 'updateBlockInput':
+			console.log("BRRRRRRRRRRRR DOING IT");
+			console.log([msg.extensionUrl, msg.callbackId, msg.newValue]);
+			extensionManager.updateBlockInput(msg.extensionUrl, msg.callbackId, msg.newValue);
+			console.log("BRRRRR RRRRR DID IT");
+			break;
+
 		case 'setSelectionMode':
 			chunkView.selectionMode = msg.mode;
 			break;
@@ -134,6 +145,17 @@ type FromElm =
 		kind: 'doSingleBlockAction',
 		workerUrl: string,
 		id: number,
+	}
+	| {
+		kind: 'triggerButton',
+		extensionUrl: string,
+		callbackId: number,
+	}
+	| {
+		kind: 'updateBlockInput',
+		extensionUrl: string,
+		callbackId: number,
+		newValue: number,
 	}
 	| {
 		kind: 'setSelectionMode',

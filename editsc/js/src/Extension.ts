@@ -18,6 +18,8 @@ export default class ExtensionManager {
 
 	// for type safety
 	private sendMsg(worker: Worker, msg: MsgToExtension) {
+		console.log("Sending msg brb");
+		console.log(msg);
 		worker.postMessage(msg);
 	}
 
@@ -42,19 +44,19 @@ export default class ExtensionManager {
 
 	doSingleBlockAction(workerUrl: string, id: number) {
 		const pos = this.chunkView.singleBlockSelectorPosition;
-		console.log(pos);
+		//console.log(pos);
 		const block = this.chunkWorld.getBlockAt(pos.x, pos.y, pos.z);
-		console.log({daBlockValue: block});
-		console.log('uwuowo');
+		//console.log({daBlockValue: block});
+		//console.log('uwuowo');
 
 		if (block == undefined) {
 			window.alert("Block is out of bounds");
 			return;
 		}
-		console.log('uwu2');
+		//console.log('uwu2');
 
-		console.log(this);
-		console.log(this.workers);
+		//console.log(this);
+		//console.log(this.workers);
 		this.sendMsg(this.workers[workerUrl]!, {
 			kind: 'doSingleBlockAction',
 			actionId: id,
@@ -63,7 +65,23 @@ export default class ExtensionManager {
 			z: pos.z,
 			blockValue: block,
 		});
-		console.log('uwu3');
+		//console.log('uwu3');
+	}
+
+	triggerButton(url: string, id: number) {
+		this.sendMsg(this.workers[url]!, {
+			kind: 'buttonClicked',
+			callbackId: id,
+		});
+	}
+
+	updateBlockInput(url: string, id: number, newValue: number) {
+		console.log("()()()()()()()()()()()()");
+		this.sendMsg(this.workers[url]!, {
+			kind: 'blockInputChanged',
+			callbackId: id,
+			newValue: newValue,
+		});
 	}
 
 	handleMsg(m: MsgFromExtension, url: string) {
@@ -87,6 +105,8 @@ export default class ExtensionManager {
 			case 'showUi':
 				this.sendToElm({
 					kind: 'showUi',
+					url: url,
+					title: m.title,
 					components: m.components,
 				});
 				break;

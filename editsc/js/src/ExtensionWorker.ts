@@ -12,6 +12,15 @@ export type MsgToExtension =
 		blockValue: number,
 	}
 	| {
+		kind: 'buttonClicked',
+		callbackId: number,
+	}
+	| {
+		kind: 'blockInputChanged',
+		callbackId: number,
+		newValue: number,
+	}
+	| {
 		kind: 'init',
 		url: string,
 	};
@@ -37,7 +46,8 @@ export type MsgFromExtension =
 	}
 	| {
 		kind: 'showUi',
-		components: Array<UiComponentMsg>,
+		title: string,
+		components: Array<UiComponent>,
 	}
 	| {
 		kind: 'log',
@@ -56,33 +66,20 @@ type UiComponent =
 	| {
 		kind: 'blockInput',
 		name: string,
-		onchange: (newBlock: Block) => void,
+		callbackId: number,
 	}
 	| {
 		kind: 'button',
 		name: string,
 		icon: string,
-		onclick: () => void,
-	};
-
-
-// Used to send UI components to Elm
-type UiComponentMsg =
-	| {
-		kind: 'blockInput',
-		name: string,
-	}
-	| {
-		kind: 'button',
-		name: string,
-		icon: string,
+		callbackId: number,
 	};
 
 
 class Block {
 	#value: number;
 
-	constructor(value: number) {
+	constructor(value = 1) {
 		this.#value = value;
 	}
 
@@ -121,18 +118,22 @@ class BlockSelection extends Block {
 
 const Editsc = new (class EditscNs {
 	singleBlockActions: Array<(selection: BlockSelection) => void>;
-	ui: Array<UiComponent>;
+	//ui: Array<UiComponent>;
+	blockInputCallbacks: Array<(block: Block) => void>;
+	buttonCallbacks: Array<() => void>;
 
 	constructor() {
 		this.singleBlockActions = [];
-		this.ui = [];
+		this.blockInputCallbacks = [];
+		this.buttonCallbacks = [];
+		//this.ui = [];
 	}
 
 	sendMsg(msg: MsgFromExtension) {
 		(self.postMessage as any)(msg);
 	}
 
-	handleMsg(msg: MsgToExtension) {
+	handleMsg(msg: MsgToExtension): void {
 		this.log(msg);
 		switch (msg.kind) {
 			case 'doSingleBlockAction':
@@ -149,6 +150,14 @@ const Editsc = new (class EditscNs {
 				this.singleBlockActions[msg.actionId]!(selection);
 				break;
 
+			case 'buttonClicked':
+				this.buttonCallbacks[msg.callbackId]!();
+				break;
+
+			case 'blockInputChanged':
+				this.blockInputCallbacks[msg.callbackId]!(new Block(msg.newValue));
+				break;
+
 			case 'init':
 				try {
 					self.importScripts(msg.url);
@@ -158,28 +167,35 @@ const Editsc = new (class EditscNs {
 					throw e;
 				}
 				break;
+
+			//default:
+				//this.log("Invalid msg.kind: "+(msg as MsgToExtension).kind)
 		}
 	}
 
 	blockInput(opt: {name: string, onchange: (newBlock: Block) => void}): UiComponent {
+		const id = this.blockInputCallbacks.length;
+		this.blockInputCallbacks.push(opt.onchange);
 		return {
 			kind: 'blockInput',
 			name: opt.name,
-			onchange: opt.onchange,
+			callbackId: id,
 		};
 	}
 
 	button(opt: {name: string, icon: string, onclick: () => void}): UiComponent {
+		const id = this.buttonCallbacks.length;
+		this.buttonCallbacks.push(opt.onclick);
 		return {
 			kind: 'button',
 			name: opt.name,
 			icon: opt.icon,
-			onclick: opt.onclick,
+			callbackId: id,
 		};
 	}
 
-	showUi(components: Array<UiComponent>) {
-		this.ui = components;
+	showUi(title: string, components: Array<UiComponent>) {
+		/*this.ui = components;
 		const uiMsg: Array<UiComponentMsg> = [];
 		for (const component of components) {
 			switch (component.kind) {
@@ -198,8 +214,8 @@ const Editsc = new (class EditscNs {
 					});
 					break;
 			}
-		}
-		this.sendMsg({kind: 'showUi', components: uiMsg});
+		}*/
+		this.sendMsg({kind: 'showUi', title: title, components: components});
 	}
 
 	log(value: any) {
