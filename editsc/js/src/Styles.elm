@@ -37,6 +37,6 @@ main =
             ]
 
         , everything
-            [ touchAction none
+            [-- touchAction none
             ]
         ]

@@ -188,6 +188,11 @@ box theme =
     --, paddingXY 13 13
     , Border.rounded 18
     , paddingXY 12 12
+    ]
+    ++ List.map htmlAttribute
+        [ HtmlAttr.style "-webkit-backdrop-filter" "blur(12px)"
+        , HtmlAttr.style "backdrop-filter" "blur(12px)"
+        ]
     {-, Border.shadow
         { offset = ( 0, 0 )
         , size = 0
@@ -196,7 +201,6 @@ box theme =
         }-}
     --, alpha 0.95
     --, htmlAttribute <| HtmlAttr.style "-webkit-backdrop-filter" "blur(10px) !important"
-    ]
 
 
 textInput : TextInput -> ( String -> msg ) -> Element msg
@@ -236,10 +240,13 @@ txt =
 dropdownList : DropdownList option msg -> Element msg
 dropdownList opt =
     column
-        [ Border.widthXY 0 1
+        [ Border.widthXY 0 0
+        , Border.rounded 6
+        , Background.color ( neuForeground Light )
         , Border.color <| rgba255 0 0 0 0.1
-        , paddingXY 2 4
-        , spacing 12
+        , Font.color gray
+        , paddingXY 8 8
+        , spacing 13
         , width fill
         ] <|
         row
@@ -248,7 +255,8 @@ dropdownList opt =
             ]
             [ el [ alignLeft, fontFamily, Font.size 16 ]
                 <| text <| opt.label ++ ": " ++ opt.optionToString opt.currentOption
-            , el [ alignRight, Font.size 16 ] <| icon "caret-down"
+            , el [ alignRight, Font.size 16 ]
+                <| icon <| if opt.expanded then "caret-up" else "caret-down"
             ]
         :: if opt.expanded then
             List.map
@@ -290,14 +298,15 @@ neuBackground : Theme -> Color
 neuBackground theme =
     case theme of
         Light ->
-            rgba255 245 245 245 0.95
+            --rgba255 245 245 245 0.92
+            rgba255 240 240 240 0.92
 
 
 neuForeground : Theme -> Color
 neuForeground theme =
     case theme of
         Light ->
-            rgb255 255 255 255
+            rgba255 255 255 255 1
 
 
 {-neuShadowLight : Theme -> Color
@@ -311,7 +320,8 @@ neuShadowDark : Theme -> Color
 neuShadowDark theme =
     case theme of
         Light ->
-            rgba255 0 0 0 0.04
+            --rgba255 0 0 0 0.04
+            rgb255 230 230 230
 
 
 
@@ -330,7 +340,8 @@ blue =
 
 gray : Color
 gray =
-    rgb255 128 118 128
+    --rgb255 128 118 128
+    rgb255 102 102 102
 
 
 
@@ -339,10 +350,12 @@ gray =
 
 outset : Theme -> Attribute msg
 outset theme =
-    Border.shadow
-        { offset = ( 3, 3 )
+    Border.innerShadow
+        --{ offset = ( 3, 3 )
+        { offset = ( -2, -2 )
         , size = 0
-        , blur = 3
+        --, blur = 3
+        , blur = 0
         , color = neuShadowDark theme
         }
     {-multiShadows

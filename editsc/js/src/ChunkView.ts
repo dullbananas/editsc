@@ -21,7 +21,7 @@ export default class ChunkView {
 		this.updateSize();
 		this.renderNeeded = true;
 		this.lightNeedsUpdate = true;
-		//this.renderLoop();
+		this.renderLoop();
 	}
 
 	private scene: THREE.Scene;
@@ -29,8 +29,8 @@ export default class ChunkView {
 		this.scene = new THREE.Scene();
 		this.scene.autoUpdate = true;
 		this.scene.frustumCulled = false;
-		this.scene.fog = new THREE.Fog(0xf5f5f5, 256-32, 256);
-		this.scene.background = new THREE.Color(0xf5f5f5);
+		this.scene.fog = new THREE.Fog(0xf0f0f0, 256-32, 256);
+		this.scene.background = new THREE.Color(0xf0f0f0);
 	}
 
 	private camera: THREE.PerspectiveCamera;
@@ -213,7 +213,7 @@ export default class ChunkView {
 		world: ChunkWorld,
 		onprogress: (soFar: number, max: number) => void,
 	) {
-		this.renderLoop();
+		//this.renderLoop();
 		console.log("total chunk count: "+world.chunks.length);
 		//const concurrency = 2;
 
@@ -396,7 +396,7 @@ export default class ChunkView {
 		this.selectorMesh.translateZ(-5);
 		this.selectorMesh.position.set(
 			Math.round(this.selectorMesh.position.x),
-			Math.round(this.selectorMesh.position.y - 1.5),
+			Math.round(this.selectorMesh.position.y - 1),
 			Math.round(this.selectorMesh.position.z),
 		);
 		this.selectorMesh.rotation.set(0, 0, 0);

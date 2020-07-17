@@ -76,6 +76,7 @@ init world =
         , touch = Touch.initModel
             [ Touch.onMove { fingers = 1 } MovedOneFinger
             , Touch.onMove { fingers = 2 } MovedTwoFingers
+            , Touch.onPinch Pinched
             ]
         , progress = 0.0
         , blockTypes = []
@@ -110,6 +111,7 @@ type Msg
     | TouchMsg Touch.Msg
     | MovedOneFinger Float Float
     | MovedTwoFingers Float Float
+    | Pinched Float
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -251,6 +253,22 @@ update msg model =
                     ]
                 )
 
+        Pinched amount ->
+            Tuple.pair
+                { model
+                | menu = case model.menu of
+                    ExtensionUi { previousMenu } -> previousMenu
+                    other -> other
+                }
+                ( Port.send <| Port.AdjustCamera
+                    [
+                        { x = 0
+                        , y = 0
+                        , z = -amount*0.05
+                        , mode = Port.Translate
+                        }
+                    ]
+                )
 
         MovedTwoFingers x y ->
             Tuple.pair
@@ -262,12 +280,12 @@ update msg model =
                 ( Port.send <| Port.AdjustCamera
                     [
                         { x = 0
-                        , y = -x*0.005
+                        , y = -x*0.006
                         , z = 0
                         , mode = Port.RotateWorld
                         }
                     ,
-                        { x = -y*0.005
+                        { x = -y*0.006
                         , y = 0
                         , z = 0
                         , mode = Port.Rotate
@@ -332,7 +350,7 @@ uiAttrs : Theme -> List (Attribute Msg)
 uiAttrs theme =
     [ alignRight
     --, scrollbarY
-    --, height fill
+    , height fill
     --, explain Debug.todo
     , scrollbarY
     ] ++ box theme
@@ -347,7 +365,7 @@ type alias InspectorView =
 body : Model -> Element Msg
 body model =
     el
-        [ paddingXY 16 16
+        [ paddingXY 20 20
         , alignRight
         , alignTop
         , width <| maximum (512-128-64) fill
@@ -355,9 +373,9 @@ body model =
         --, height <| case model.uiVisibility of
         --    Expanded -> fill
         --    _ -> shrink
-        --, scrollbarY
+        , scrollbarY
         , clip
-        , height fill
+        --, height fill
         ]
 
         <| case model.uiVisibility of
