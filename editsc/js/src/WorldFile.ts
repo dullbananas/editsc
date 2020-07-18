@@ -20,17 +20,13 @@ export default class WorldFile {
 			case 1:
 				const file: File = this.inputElement.files![0];
 				const zip: any = await JSZip.loadAsync(file);
-				console.log("Zip loaded");
 
 				const chunksObj = zip.file(/Chunks32h\.dat$/)[0];
 				const projectObj = zip.file(/Project\.xml$/)[0];
-				console.log("Objects loaded");
 
 				if ( chunksObj && projectObj ) {
 					this.project = await projectObj.async('string');
-					console.log("Loaded project string");
 					this.chunks = await chunksObj.async('arraybuffer');
-					console.log("Loaded chunks arraybuffer");
 				}
 				else {
 					const filenames: Array<String> = [];

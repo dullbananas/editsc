@@ -1,20 +1,13 @@
 import * as THREE from 'three';
 
-//import ChunkWorld, {Chunk} from './ChunkWorld';
-import {MsgFromChunkWorker, MsgToChunkWorker, DirectoryEntry} from './ChunkWorker';
+import ChunkWorld, {Chunk} from './ChunkWorld';
 import * as Block from './Block';
 import BlockType from './Block';
-import {waitForWorker} from './Utils';
-//import {BlockCondition, WorkerMsg} from './ChunkWorker';
+import {BlockCondition, WorkerMsg} from './ChunkWorker';
 
 
 export default class ChunkView {
-	chunkWorker: Worker;
-	directory: Array<DirectoryEntry>;
-	constructor(canvas: HTMLCanvasElement, chunkWorker: Worker) {
-		this.chunkWorker = chunkWorker;
-		this.directory = [];
-
+	constructor(canvas: HTMLCanvasElement) {
 		this.initScene();
 		this.initCamera();
 		this.initRenderer(canvas);
@@ -29,10 +22,6 @@ export default class ChunkView {
 		this.renderNeeded = true;
 		this.lightNeedsUpdate = true;
 		this.renderLoop();
-	}
-
-	private async waitForChunkWorker(): Promise<MsgFromChunkWorker> {
-		return await waitForWorker(this.chunkWorker);
 	}
 
 	private scene: THREE.Scene;
@@ -117,7 +106,7 @@ export default class ChunkView {
 		> | undefined
 	>;
 	private updateCount: number;
-	async updateChunk(index: number) {
+	async updateChunk(chunk: Chunk) {
 		if (!this.chunkGroups[chunk.x]) {
 			this.chunkGroups[chunk.x] = {};
 		}
@@ -224,24 +213,29 @@ export default class ChunkView {
 		world: ChunkWorld,
 		onprogress: (soFar: number, max: number) => void,
 	) {
-		this.directory = (await this.waitForChunkWorker({
-			kind: 'getDirectory',
-		}).entries!) as Array<DirectoryEntry>;
+		//this.renderLoop();
+		console.log("total chunk count: "+world.chunks.length);
+		//const concurrency = 2;
 
-		const entry0 = this.directory[0];
-		if (entry0) {
-			this.initCameraPosition(entry0.z << 4, -(entry0.x << 4));
+		const chunk0 = world.chunks[0];
+		if (chunk0) {
+			this.initCameraPosition(chunk0.z << 4, -(chunk0.x << 4));
 		}
 
-		for (let chunki = 0; chunki < this.directory.length; chunki++) {
-
-		}
-
-		/*for (const chunk of world.chunks) {
+		//let promises: Array<Promise<void>> = [];
+		for (const chunk of world.chunks) {
+			/*promises.push(this.updateChunk(chunk));
+			if (promises.length === concurrency) {
+				await Promise.all(promises);
+				promises = [];
+				onprogress(this.updateCount, world.chunks.length);
+			}*/
 			await this.updateChunk(chunk);
 			onprogress(this.updateCount, world.chunks.length);
-		}*/
-
+		}
+		/*console.log(promises.length);
+		await Promise.all(promises);
+		onprogress(this.updateCount, world.chunks.length);*/
 		console.log("rendered all chunks");
 
 	}

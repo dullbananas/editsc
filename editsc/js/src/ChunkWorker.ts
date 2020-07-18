@@ -1,176 +1,177 @@
-// Manages chunks in the world in a worker
+// This script runs in a worker
 
 
-export type MsgToChunkWorker =
+// To worker
+export type WorkerMsg =
 	| {
-		kind: 'getArrayBuffer',
+		kind: 'countFaces',
+		condition: BlockCondition,
 	}
 	| {
-		kind: 'getDirectory',
+		kind: 'any',
+		condition: BlockCondition,
+	}
+	| {
+		kind: 'getBlockFaces',
+		condition: BlockCondition,
 	}
 	| {
 		kind: 'init',
-		arrayBuffer: ArrayBuffer,
+		chunkData: DataView,
 	};
 
-export type MsgFromChunkWorker =
-	| {
-		kind: 'initError',
-		error: any,
-	}
-	| {
-		kind: 'gotArrayBuffer',
-		arrayBuffer: ArrayBuffer,
-	}
-	| {
-		kind: 'gotDirectory',
-		entries: Array<DirectoryEntry>,
-	}
-	| {
-		kind: 'initSuccess',
-	};
 
-function send(msg: MsgFromChunkWorker, transfer: Array<any> = []) {
+function send(msg: any) {
+	(self.postMessage as any)(msg);
+}
+
+function sendt(msg: any, transfer: Array<any>) {
 	(self.postMessage as any)(msg, transfer);
 }
 
 
-export type DirectoryEntry = {
-	x: number,
-	z: number,
-};
-
-
-let arrayBuffer = new ArrayBuffer(0);
-let dataView = new DataView(arrayBuffer);
-let chunkCount = 0;
-
-
-self.onmessage = (event: MessageEvent) => {
-	const msg = event.data as MsgToChunkWorker;
-	switch (msg.kind) {
-		case 'getArrayBuffer':
-			send({
-				kind: 'gotArrayBuffer',
-				arrayBuffer: arrayBuffer,
-			});
-			break;
-
-		case 'getDirectory':
-			send({
-				kind: 'gotDirectory',
-				entries: getDirectoryEntries(),
-			});
-			break;
-
-		case 'getFacesById':
-			const result = getFacesById(msg.typeId, msg.chunki, msg.fx, msg.fy, msg.fz);
-			send({
-				kind: 'gotFacesById',
-				faces: result,
-			}, [result]);
-			break;
-
-		case 'init':
-			try {
-				initArrayBuffer(msg.arrayBuffer);
-				send({
-					kind: 'initSuccess',
-				});
-			}
-			catch (e) {
-				send({
-					kind: 'initError',
-					error: e,
-				})
-			}
-			break;
-	}
-};
-
-
-getDirectoryEntries(): Array<DirectoryEntry> {
-	for (let chunki = 0; chunki < chunkCount; chunki++) {
-		const offset = 786444 + chunki*263184;
-		const x = dataView.getInt32(8, true);
-		const y = dataView.getUint32(12, true);
-		return {x=x, y=y};
-	}
+const checkCondition = (condition: BlockCondition) => (block: number) => {
+	return condition.blockId === (block & 0b1111111111);
 }
 
 
-initArrayBuffer(data: ArrayBuffer) {
-	arrayBuffer = data;
+export type BlockCondition = {
+	blockId: number,
+};
 
-	// Validate byte length
-	if ( (arrayBuffer.byteLength-786444) % 263184 ) !== 0 ) {
-		throw "Invalid byte length: " + arrayBuffer.byteLength;
+
+let view = new DataView(new ArrayBuffer(0));
+
+
+self.onmessage = function(event: MessageEvent) {
+	const msg = event.data as WorkerMsg;
+	switch (msg.kind) {
+		case 'countFaces':
+			countFaces(msg.condition);
+			break;
+
+		case 'any':
+			anyBlocks(msg.condition);
+			break;
+
+		case 'getBlockFaces':
+			getBlockFaces(msg.condition);
+			break;
+
+		case 'init':
+			view = msg.chunkData;
+			break;
 	}
+};
 
-	dataView = new DataView(arrayBuffer);
-	chunkCount = (arrayBuffer.byteLength-786444) / 263184;
 
-	// Check magic numbers
-	for (let chunki = 0; chunki < chunkCount; chunki++) {
-		const offset = 786444 + chunki*263184;
-		const magic1 = dataView.getUint32(offset, true);
-		const msgic2 = dataView.getUint32(offset+4, true);
-		if (magic1 !== 0xdeadbeef || magic2 !== 0xfffffffe) {
-			throw "Chunk #"+chunki+" has invalid magic numbers";
+function getBlock(index: number): number | undefined {
+	return view.getUint32(16+(index<<2), true);
+}
+
+
+function iterBlocks(
+	callback: (value: number, x: number, y: number, z: number) => void,
+	condition: (block: number) => boolean,
+) {
+	for (let i = 0; i < 65536; i++) {
+		const block: number = getBlock(i)!;
+		if(condition(block)) {
+			// Coordinates are extracted from block index
+			callback(block, (i>>8)&15, i&255, (i>>12)&15);
 		}
 	}
 }
 
 
-function getBlockByIndex(chunki: number) {
-	const startOffset = 786444 + 16 + chunki*263184;
-	return (blocki: number): number => {
-		return dataView.getUint32(
-			startOffset + blocki*4,
-			true // little endian
-		);
+type Vector = { x: number, y: number, z: number };
+
+
+const faceVectors: Array<Vector> = [
+	{ x: 0, y: 0, z: 1 },
+	{ x: 0, y: 1, z: 0 },
+	{ x: 1, y: 0, z: 0 },
+	{ x: 0, y: 0, z: -1 },
+	{ x: 0, y: -1, z: 0 },
+	{ x: -1, y: 0, z: 0 },
+];
+
+
+function countFaces(condition: BlockCondition) {
+	let result = 0;
+	const isCorrectBlock = checkCondition(condition);
+	for (const vector of faceVectors) {
+		iterBlocks((block, x, y, z) => {
+			const ox = x + vector.x;
+			const oy = y + vector.y;
+			const oz = z + vector.z;
+			if (!inChunkBounds(ox, oy, oz)) {
+				result++;
+				return;
+			}
+			const blockIndex: number = getBlockIndex(ox, oy, oz);
+			if (!isCorrectBlock(getBlock(blockIndex)!)) {
+				result++;
+			}
+		}, isCorrectBlock);
 	}
+	send(result);
 }
 
 
-function blockIndexFromXyz(x: number, y: number, z: number): number {
-	return y + (x<<8) + (z<<12);
+function getBlockFaces(condition: BlockCondition) {
+	const arr = new Uint8Array(65536);
+	//let i = 0;
+	const isCorrectBlock = checkCondition(condition);
+	iterBlocks((block, x, y, z) => {
+		let faces = 0b000000;
+		for (let facei = 0; facei < 6; facei++) {
+			const vector = faceVectors[facei]!;
+			const ox = x + vector.x;
+			const oy = y + vector.y;
+			const oz = z + vector.z;
+			if (!inChunkBounds(ox, oy, oz)) {
+				faces = faces | (1<<facei);
+				continue;
+			}
+			const otherBlock: number = getBlock(
+				getBlockIndex(ox, oy, oz)
+			)!;
+			if (!isCorrectBlock(otherBlock)) {
+				faces = faces | (1<<facei);
+			}
+		}
+		arr[getBlockIndex(x, y, z)] = faces;
+		//i++;
+	}, isCorrectBlock);
+	sendt(arr.buffer, [arr.buffer])
+}
+
+
+// Check if any blocks satisfy the condition
+function anyBlocks(condition: BlockCondition) {
+	const isCorrectBlock = checkCondition(condition);
+	for (let i = 0; i < 65536; i++) {
+		if (isCorrectBlock(getBlock(i)!)) {
+			send(true);
+			return;
+		}
+	}
+	send(false);
+}
+
+
+function getBlockIndex(x: number, y: number, z: number): number {
+	return (y) + (x<<8) + (z<<12);
 }
 
 
 function inChunkBounds(x: number, y: number, z: number): boolean {
-	if (x < 0 || x > 15) {return false};
-	if (z < 0 || z > 15) {return false};
-	if (y < 0 || y > 255) {return false};
+	if (x < 0) { return false; }
+	if (z < 0) { return false; }
+	if (x > 15) { return false; }
+	if (z > 15) { return false; }
+	if (y < 0) { return false; }
+	if (y > 255) { return false; }
 	return true;
-}
-
-
-// Get faces of blocks that have a specified type id. This function is run
-// once per face direction. fx, fy, and fz must be -1, 0, or 1.
-getFacesByTypeId(typeId: number, chunki: number, fx: number, fy: number, fz: number): Uint8Array {
-	// 1 byte per face, each holding 0 or 1
-	const arr = new Uint8Array(65536);
-	const getBlock = getBlockByIndex(chunki);
-
-	for (const blocki = 0; blocki < 65536; blocki++) {
-		const block = getBlock(blocki);
-		if (block & 0b1111111111 === typeId) {
-			const x = (blocki>>8) & 15;
-			const y = blocki & 255;
-			const z = (blocki>>12) & 15;
-			const otherx = x+fx;
-			const othery = y+fy;
-			const otherz = z+fz;
-			if (!inChunkBounds(otherx, othery, otherz)) {
-				arr[blocki] = 1;
-				continue;
-			}
-			const otherblock = getBlock(blockIndexFromXyz(otherx, othery, otherz));
-			if (otherblock & 0b1111111111 !== typeId) {
-				arr[blocki] = 1;
-			}
-		}
-	}
-	return arr;
 }
