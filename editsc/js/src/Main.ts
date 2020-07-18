@@ -1,7 +1,9 @@
 import ExtensionManager from './Extension';
-import ChunkWorld from './ChunkWorld';
+//import ChunkWorld from './ChunkWorld';
+import {MsgToChunkWorker, MsgFromChunkWorker} from './ChunkWorker';
 import ChunkView, {SelectionMode, CameraAdjustment} from './ChunkView';
-import WorldFile from './WorldFile'
+import WorldFile from './WorldFile';
+import {waitForWorker} from './Utils';
 
 
 const Elm = require('./Main.elm').Elm;
@@ -15,20 +17,31 @@ Elm.Styles.init({
 });
 
 
-const chunkWorld = new ChunkWorld();
+//const chunkWorld = new ChunkWorld();
+const chunkWorker = new Worker("../static/ChunkWorker.js");
+
+async function waitForChunkWorker(): Promise<MsgFromChunkWorker> {
+	return await waitForWorker(chunkWorker);
+}
 
 const chunkView = new ChunkView(
 	document.getElementById('world-canvas') as HTMLCanvasElement,
+	chunkWorker
 	//sendToElm,
 );
 
 let worldFile: WorldFile | null = null;
 
-const extensionManager = new ExtensionManager(sendToElm, chunkWorld, chunkView);
+const extensionManager = new ExtensionManager(sendToElm, chunkWorker, chunkView);
 
 
 function sendToElm(msg: any) {
 	elmApp.ports.toElmPort.send(msg);
+}
+
+
+function sendToChunkWorker(msg: MsgToChunkWorker) {
+	chunkWorker.postMessage(msg);
 }
 
 
@@ -62,22 +75,43 @@ async function handleMsg(msg: FromElm) {
 			break;
 
 		case 'loadChunksFile':
-			try {
-				await chunkWorld.loadArrayBuffer(worldFile!.chunks);
-				sendToElm({kind: 'chunksFileLoaded'});
+			//try {
+				//await chunkWorld.loadArrayBuffer(worldFile!.chunks);
+				//sendToElm({kind: 'chunksFileLoaded'});
+			sendToChunkWorker({
+				kind: 'init',
+				arrayBuffer: worldFile!.chunks,
+			});
+			/*const response: MsgFromChunkWorker = await new Promise(resolve => {
+				chunkWorker.onmessage = (event) => {resolve(event.data)};
+			});*/
+			const response = await waitForChunkWorker();
+			switch (response.kind) {
+				case 'initSuccess':
+					sendToElm({kind: 'chunksFileLoaded'});
+					break;
+
+				case 'initError':
+					sendToElm({
+						kind: 'importError',
+						message: "Chunks file is corrupted",
+					});
+					console.error(response.error);
+					break;
 			}
+			/*}
 			catch (err) {
 				sendToElm({
 					kind: 'importError',
 					message: "Chunks file contains invalid data. It might be corrupted",
 				});
 				console.error(err);
-			}
+			}*/
 			break;
 
 		case 'switchedToEditor':
 			extensionManager.load("https://editsc.pythonanywhere.com/dulldevBasics.js");
-			chunkView.initWorld(chunkWorld, (soFar: number, max: number) => {
+			chunkView.initWorld((soFar: number, max: number) => {
 				sendToElm({
 					kind: 'progress',
 					portion: soFar/max,
@@ -87,7 +121,14 @@ async function handleMsg(msg: FromElm) {
 
 		case 'saveScworld':
 			if (worldFile) {
-				worldFile.chunks = chunkWorld.arrayBuffer;
+				//worldFile.chunks = chunkWorld.arrayBuffer;
+				sendToChunkWorker({
+					kind: 'getArrayBuffer',
+				});
+				/*worldFile.chunks = await new Promise(resolve => {
+					chunkWorker.onmessage = (event) => { resolve(event.arrayBuffer!) };
+				});*/
+				worldFile.chunks = (await waitForChunkWorler()).arrayBuffer!;
 				worldFile.project = msg.projectFileContent;
 				worldFile.saveAs(msg.fileName);
 			}
@@ -104,7 +145,7 @@ async function handleMsg(msg: FromElm) {
 
 		case 'updateBlockInput':
 			console.log("BRRRRRRRRRRRR DOING IT");
-			console.log([msg.extensionUrl, msg.callbackId, msg.newValue]);
+			//console.log([msg.extensionUrl, msg.callbackId, msg.newValue]);
 			extensionManager.updateBlockInput(msg.extensionUrl, msg.callbackId, msg.newValue);
 			console.log("BRRRRR RRRRR DID IT");
 			break;
