@@ -42,30 +42,29 @@ export default class ExtensionManager {
 		this.workers[url] = worker;
 	}
 
-	doSingleBlockAction(workerUrl: string, id: number) {
-		const pos = this.chunkView.singleBlockSelectorPosition;
-		//console.log(pos);
-		const block = this.chunkWorld.getBlockAt(pos.x, pos.y, pos.z);
-		//console.log({daBlockValue: block});
-		//console.log('uwuowo');
+	triggerAction(workerUrl: string, id: number, actionType: ActionType) {
+		switch (actionType) {
+			case 'block':
+				const pos = this.chunkView.singleBlockSelectorPosition;
+				const block = this.chunkWorld.getBlockAt(pos.x, pos.y, pos.z);
+				if (block == undefined) {
+					window.alert("Block is out of bounds");
+					return;
+				}
+				this.sendMsg(this.workers[workerUrl]!, {
+					kind: 'doSingleBlockAction',
+					actionId: id,
+					x: pos.x,
+					y: pos.y,
+					z: pos.z,
+					blockValue: block,
+				});
+				break;
 
-		if (block == undefined) {
-			window.alert("Block is out of bounds");
-			return;
+			case 'blockArray':
+				console.log("no");
+				break;
 		}
-		//console.log('uwu2');
-
-		//console.log(this);
-		//console.log(this.workers);
-		this.sendMsg(this.workers[workerUrl]!, {
-			kind: 'doSingleBlockAction',
-			actionId: id,
-			x: pos.x,
-			y: pos.y,
-			z: pos.z,
-			blockValue: block,
-		});
-		//console.log('uwu3');
 	}
 
 	triggerButton(url: string, id: number) {
@@ -91,14 +90,15 @@ export default class ExtensionManager {
 				alert(m.content + " (from " + url + ")");
 				break;
 
-			case 'newSingleBlockAction':
+			case 'newAction':
 				console.log('block action');
 				this.sendToElm({
-					kind: 'newSingleBlockAction',
+					kind: 'newAction',
 					id: m.id,
 					name: m.name,
 					icon: m.icon,
 					workerUrl: url,
+					actionType: m.actionType,
 				});
 				break;
 
@@ -132,3 +132,8 @@ export default class ExtensionManager {
 		}
 	}
 }
+
+
+export type ActionType =
+	| 'block'
+	| 'blockArray';

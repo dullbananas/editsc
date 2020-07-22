@@ -7,7 +7,7 @@ module Page.Editor exposing
     , subscriptions
     )
 
-import Port
+import Port exposing (BlockArrayCorner(..))
 import Ui exposing (..)
 import World exposing (World)
 import BlocksData
@@ -35,7 +35,7 @@ type alias Model =
     , theme : Theme
     , menu : Menu
     , chunksToRender : List Int
-    , singleBlockActions : List Port.SingleBlockAction
+    , extensionActions : List Port.ActionButton
     , touch : Touch.Model Msg
     , progress : Float
     , blockTypes : List BlocksData.BlockType
@@ -46,6 +46,7 @@ type Menu
     = MainMenu
     | SaveWorld { fileName : String }
     | SelectSingleBlock
+    | SelectBlockArray ( Maybe BlockArrayCorner )
     | ExtensionUi
         { title : String
         , url : String
@@ -72,7 +73,7 @@ init world =
         , theme = Light
         , menu = MainMenu
         , chunksToRender = []
-        , singleBlockActions = []
+        , extensionActions = []
         , touch = Touch.initModel
             [ Touch.onMove { fingers = 1 } MovedOneFinger
             , Touch.onMove { fingers = 2 } MovedTwoFingers
@@ -102,7 +103,7 @@ type Msg
 
     | GotBlocksData ( BlocksData.RequestResult )
 
-    | DoSingleBlockAction { workerUrl : String, id : Int }
+    | DoExtensionAction { workerUrl : String, id : Int, actionType : Port.ActionType }
     | ExtensionButtonClicked String Int
     | UpdateBlockInput String Int Int
     | UpdateComponent Int ( Port.UiComponent )
@@ -139,6 +140,7 @@ update msg model =
             , Cmd.batch
                 [ Port.send <| Port.SetSelectionMode <| case menu of
                     SelectSingleBlock -> Port.SelectingSingleBlock
+                    SelectBlockArray corner -> Port.SelectingArray corner
                     _ -> Port.NotSelecting
                 ]
             )
@@ -166,10 +168,10 @@ update msg model =
 
         PortMsg ( Ok portMsg ) ->
             case portMsg of
-                Port.NewSingleBlockAction action ->
+                Port.NewAction action ->
                     Tuple.pair
                         { model
-                        | singleBlockActions = action :: model.singleBlockActions
+                        | extensionActions = action :: model.extensionActions
                         }
                         Cmd.none
 
@@ -209,10 +211,10 @@ update msg model =
                 _ ->
                     ( model, Cmd.none )
 
-        DoSingleBlockAction action ->
+        DoExtensionAction action ->
             Tuple.pair
                 model
-                ( Port.send (Port.DoSingleBlockAction action) )
+                ( Port.send (Port.DoAction action) )
 
         ExtensionButtonClicked url callbackId ->
             Tuple.pair
@@ -465,6 +467,9 @@ menuTitle menu =
         SelectSingleBlock ->
             "Select block"
 
+        SelectBlockArray _ ->
+            "Select blocks"
+
         ExtensionUi { title } ->
             title
 
@@ -479,6 +484,10 @@ viewInspector model =
                     model.theme
                     { btn | iconName = "cube", label = "Select block" }
                     ( UpdateMenu SelectSingleBlock )
+                , button
+                    model.theme
+                    { btn | iconName = "cubes", label = "Select multiple blocks" }
+                    ( UpdateMenu <| SelectBlockArray <| Just Blue )
                 , button
                     model.theme
                     { btn | iconName = "file-download", label = "Save world..." }
@@ -507,7 +516,41 @@ viewInspector model =
         SelectSingleBlock ->
             { back = Just MainMenu
             , body =
-                List.map ( singleBlockBtn model.theme ) model.singleBlockActions
+                List.filterMap ( actionBtn Port.BlockAction ) model.extensionActions
+            }
+
+        SelectBlockArray corner ->
+            let
+                ( blue, green ) =
+                    case corner of
+                        Just Blue -> ( True, False )
+                        Just Green -> ( False, True )
+                        Nothing -> ( False, False )
+
+                cornerBtn label corner_ =
+                    Lazy.lazy3 button
+                        model.theme
+                        { btn
+                        | iconName = "cube"
+                        , label =
+                            if corner == Just corner_ then
+                                "Adjusting "++label++" corner"
+                            else
+                                "Adjust "++label++" corner"
+                        , active = corner == Just corner_
+                        }
+                        ( UpdateMenu <| SelectBlockArray <|
+                            if corner == Just corner_ then
+                                Nothing
+                            else
+                                Just <| corner_
+                        )
+            in
+            { back = Just MainMenu
+            , body =
+                [ cornerBtn "blue" Blue
+                , cornerBtn "green" Green
+                ] ++ List.filterMap ( actionBtn Port.BlockArrayAction ) model.extensionActions
             }
 
         ExtensionUi { url, components, previousMenu } ->
@@ -559,9 +602,12 @@ viewComponent model url index component =
                 ]
 
 
-singleBlockBtn : Theme -> Port.SingleBlockAction -> Element Msg
-singleBlockBtn theme { id, name, icon, workerUrl } =
-    button
-        theme
-        { btn | iconName = icon, label = name }
-        ( DoSingleBlockAction { workerUrl = workerUrl, id = id } )
+actionBtn : Port.ActionType -> Port.ActionButton -> Maybe ( Element Msg )
+actionBtn correctType { id, name, icon, workerUrl, actionType } =
+    if correctType == actionType then
+        Just <| button
+            Light
+            { btn | iconName = icon, label = name }
+            ( DoExtensionAction { workerUrl = workerUrl, id = id, actionType = correctType } )
+    else
+        Nothing

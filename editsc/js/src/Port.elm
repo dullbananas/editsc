@@ -15,6 +15,12 @@ port fromElmPort : E.Value -> Cmd msg
 type SelectionMode
     = NotSelecting
     | SelectingSingleBlock
+    | SelectingArray ( Maybe BlockArrayCorner )
+
+
+type BlockArrayCorner
+    = Blue
+    | Green
 
 
 type FromElm
@@ -30,9 +36,10 @@ type FromElm
         }
 
     --Extensions
-    | DoSingleBlockAction
+    | DoAction
         { workerUrl : String
         , id : Int
+        , actionType : ActionType
         }
     | TriggerButton String Int
     | UpdateBlockInput String Int Int
@@ -40,6 +47,11 @@ type FromElm
     --Interaction
     | SetSelectionMode SelectionMode
     | AdjustCamera (List CameraAdjustment)
+
+
+type ActionType
+    = BlockAction
+    | BlockArrayAction
 
 
 type alias CameraAdjustment =
@@ -84,10 +96,14 @@ encode msg =
                 , ( "projectFileContent", E.string projectFileContent )
                 ]
 
-        DoSingleBlockAction { workerUrl, id } ->
-            encodeHelp "doSingleBlockAction"
+        DoAction { workerUrl, id, actionType } ->
+            encodeHelp "doAction"
                 [ ( "workerUrl", E.string workerUrl )
                 , ( "id", E.int id )
+                , ( "actionType", E.string <| case actionType of
+                    BlockAction -> "block"
+                    BlockArrayAction -> "blockArray"
+                    )
                 ]
 
         TriggerButton url id ->
@@ -112,6 +128,19 @@ encode msg =
             encodeHelp "setSelectionMode"
                 [ ( "mode", E.string "singleBlock" )
                 ]
+
+        SetSelectionMode (SelectingArray corner) ->
+            encodeHelp "setSelectionMode"
+                [ ( "mode", E.string <| case corner of
+                    Nothing ->
+                        "array"
+
+                    Just Blue ->
+                        "arrayBlue"
+
+                    Just Green ->
+                        "arrayGreen"
+                )]
 
         AdjustCamera adjustments ->
             encodeHelp "adjustCamera"
@@ -147,18 +176,19 @@ type ToElm
     | ImportError String
 
     --Extensions
-    | NewSingleBlockAction SingleBlockAction
+    | NewAction ActionButton
     | ShowUi String String ( Array UiComponent )
 
     --Misc
     | Progress Float
 
 
-type alias SingleBlockAction =
+type alias ActionButton =
     { id : Int
     , name : String
     , icon : String
     , workerUrl : String
+    , actionType : ActionType
     }
 
 
@@ -197,13 +227,14 @@ decodeKind kind =
             D.map ImportError
                 ( D.field "message" D.string )
 
-        "newSingleBlockAction" ->
-            D.map NewSingleBlockAction
-                <| D.map4 ( SingleBlockAction )
+        "newAction" ->
+            D.map NewAction
+                <| D.map5 ( ActionButton )
                     ( D.field "id" D.int )
                     ( D.field "name" D.string )
                     ( D.field "icon" D.string )
                     ( D.field "workerUrl" D.string )
+                    ( D.field "actionType" decodeActionType )
 
         "showUi" ->
             D.map3 ShowUi
@@ -245,3 +276,13 @@ decodeUiComponentKind kind =
 
         _ ->
             D.fail <| "Invalid component kind: " ++ kind
+
+
+decodeActionType : D.Decoder ActionType
+decodeActionType =
+    D.string |> D.andThen
+        ( \str -> case str of
+            "block" -> D.succeed BlockAction
+            "blockArray" -> D.succeed BlockArrayAction
+            _ -> D.fail "Invalid action type"
+        )

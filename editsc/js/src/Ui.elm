@@ -111,13 +111,13 @@ button theme { iconName, label, active } clickMsg =
         attrs =
             [ fontFamily
             , height <| px 44
-            , outset theme
             , Font.size 22
             , Border.rounded 22
             , Event.onClick clickMsg
             , Font.color <| if active then blue else gray
+            , if active then Font.medium else Font.regular
             , Background.color <| neuForeground theme
-            ]
+            ] ++ outset theme
     in
         case label of
             "" ->
@@ -205,7 +205,7 @@ box theme =
 
 textInput : TextInput -> ( String -> msg ) -> Element msg
 textInput { content, name } onChange =
-    Input.text
+    Input.text (
         [ fontFamily
         --, Background.color maxWhite
         , Background.color ( neuForeground Light )
@@ -213,8 +213,7 @@ textInput { content, name } onChange =
         , Border.width 0
         --, Font.color gray
         , Font.size 16
-        , outset Light
-        ]
+        ] ++ outset Light )
         { onChange = onChange
         , text = content
         , placeholder = Just <|
@@ -348,16 +347,16 @@ gray =
 -- Misc
 
 
-outset : Theme -> Attribute msg
+outset : Theme -> List ( Attribute msg )
 outset theme =
-    Border.innerShadow
+    {-Border.innerShadow
         --{ offset = ( 3, 3 )
         { offset = ( -2, -2 )
         , size = 0
         --, blur = 3
         , blur = 0
         , color = neuShadowDark theme
-        }
+        }-}
     {-multiShadows
         [
             { offset = ( 3, 3 )
@@ -374,6 +373,20 @@ outset theme =
             , inset = False
             }
         ]-}
+    [ Border.widthEach
+        { top = 0
+        , left = 0
+        , right = 2
+        , bottom = 2
+        }
+    , Border.color <| neuShadowDark theme
+    , Border.shadow
+        { offset = ( 0, 0 )
+        , size = 1
+        , blur = 2
+        , color = neuBackground theme
+        }
+    ]
 
 
 {-inset : Attribute msg

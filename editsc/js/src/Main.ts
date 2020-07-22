@@ -1,4 +1,4 @@
-import ExtensionManager from './Extension';
+import ExtensionManager, {ActionType} from './Extension';
 import ChunkWorld from './ChunkWorld';
 import ChunkView, {SelectionMode, CameraAdjustment} from './ChunkView';
 import WorldFile from './WorldFile'
@@ -93,8 +93,8 @@ async function handleMsg(msg: FromElm) {
 			}
 			break;
 
-		case 'doSingleBlockAction':
-			extensionManager.doSingleBlockAction(msg.workerUrl, msg.id);
+		case 'doAction':
+			extensionManager.triggerAction(msg.workerUrl, msg.id, msg.actionType);
 			console.log('did action');
 			break;
 
@@ -142,9 +142,10 @@ type FromElm =
 		projectFileContent: string,
 	}
 	| {
-		kind: 'doSingleBlockAction',
+		kind: 'doAction',
 		workerUrl: string,
 		id: number,
+		actionType: ActionType,
 	}
 	| {
 		kind: 'triggerButton',

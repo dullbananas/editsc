@@ -206,7 +206,7 @@ export default class ChunkView {
 		group.updateMatrix();
 		this.updateCount++;
 		this.refresh();
-		console.log("rendered chunk # "+this.updateCount)
+		//console.log("rendered chunk # "+this.updateCount)
 	}
 
 	async initWorld(
@@ -331,8 +331,14 @@ export default class ChunkView {
 			// update and render
 			this.camera.matrixWorldNeedsUpdate = true;
 			this.camera.updateMatrix();
-			if (this.selectorMesh.visible) {
-				this.updateSelector();
+			if (this.blueSelector.visible) {
+				this.updateSelector(this.blueSelector);
+			}
+			if (this.greenSelector.visible) {
+				this.updateSelector(this.greenSelector);
+			}
+			if (this.arrayBorder.visible) {
+				this.updateArrayBorder();
 			}
 			if (this.lightNeedsUpdate) {
 				this.updateLight();
@@ -342,22 +348,45 @@ export default class ChunkView {
 		requestAnimationFrame(() => {this.renderLoop()});
 	}
 
-	selectorMesh: THREE.Mesh;
+	blueSelector: THREE.Mesh;
+	greenSelector: THREE.Mesh;
+	arrayBorder: THREE.Mesh;
 	initSelector() {
 		const selectorSize = 1.05;
 		const selectorGeometry = new THREE.BoxBufferGeometry(
 			selectorSize, selectorSize, selectorSize
 		);
-		const selectorMaterial = new THREE.MeshLambertMaterial({
-			color: new THREE.Color(0x888888),
+		const blueMaterial = new THREE.MeshLambertMaterial({
+			color: new THREE.Color(0x0000ff),
 			transparent: true,
-			opacity: 0.85,
+			opacity: 0.5,
 		});
-		this.selectorMesh = new THREE.Mesh(selectorGeometry, selectorMaterial);
+		const greenMaterial = new THREE.MeshLambertMaterial({
+			color: new THREE.Color(0x00ff00),
+			transparent: true,
+			opacity: 0.5,
+		});
 
-		this.selectorMesh.matrixAutoUpdate = false;
-		this.selectorMesh.visible = false;
-		this.scene.add(this.selectorMesh);
+		this.blueSelector = new THREE.Mesh(selectorGeometry, blueMaterial);
+		this.blueSelector.matrixAutoUpdate = false;
+		this.blueSelector.visible = false;
+
+		this.greenSelector = new THREE.Mesh(selectorGeometry, greenMaterial);
+		this.greenSelector.matrixAutoUpdate = false;
+		this.greenSelector.visible = false;
+
+		const arrayBorderGeometry = new THREE.BoxBufferGeometry(1, 1, 1);
+		const arrayBorderMaterial = new THREE.MeshLambertMaterial({
+			color: new THREE.Color(0xeeee00),
+			wireframe: false,
+			transparent: true,
+			opacity: 0.5,
+			side: THREE.DoubleSide,
+		});
+		this.arrayBorder = new THREE.Mesh(arrayBorderGeometry, arrayBorderMaterial);
+		this.arrayBorder.visible = false;
+
+		this.scene.add(this.blueSelector, this.greenSelector, this.arrayBorder);
 	}
 
 	get selectionMode(): SelectionMode {
@@ -365,14 +394,32 @@ export default class ChunkView {
 		return 'none';
 	}
 	set selectionMode(mode: SelectionMode) {
+		this.blueSelector.visible = false;
+		this.greenSelector.visible = false;
+		this.arrayBorder.visible = false;
 		switch (mode) {
 			case 'none':
-				this.selectorMesh.visible = false;
 				break;
 
 			case 'singleBlock':
-				this.updateSelector();
-				this.selectorMesh.visible = true;
+				this.updateSelector(this.blueSelector);
+				this.blueSelector.visible = true;
+				break;
+
+			case 'array':
+				this.arrayBorder.visible = true;
+				break;
+
+			case 'arrayBlue':
+				//this.updateSelector(this.blueSelector);
+				this.arrayBorder.visible = true;
+				this.blueSelector.visible = true;
+				break;
+
+			case 'arrayGreen':
+				//this.updateSelector(this.greenSelector);
+				this.arrayBorder.visible = true;
+				this.greenSelector.visible = true;
 				break;
 		}
 		this.refresh();
@@ -390,22 +437,56 @@ export default class ChunkView {
 		this.directionalLight.updateMatrix();
 	}
 
-	updateSelector() {
-		this.selectorMesh.position.copy(this.camera.position);
-		this.selectorMesh.quaternion.copy(this.camera.quaternion);
-		this.selectorMesh.translateZ(-5);
-		this.selectorMesh.position.set(
-			Math.round(this.selectorMesh.position.x),
-			Math.round(this.selectorMesh.position.y - 1),
-			Math.round(this.selectorMesh.position.z),
+	updateSelector(mesh: THREE.Mesh) {
+		mesh.position.copy(this.camera.position);
+		mesh.quaternion.copy(this.camera.quaternion);
+		mesh.translateZ(-5);
+		mesh.position.set(
+			Math.round(mesh.position.x),
+			Math.round(mesh.position.y - 1),
+			Math.round(mesh.position.z),
 		);
-		this.selectorMesh.rotation.set(0, 0, 0);
-		this.selectorMesh.updateMatrix();
+		mesh.rotation.set(0, 0, 0);
+		mesh.updateMatrix();
+	}
+
+	updateArrayBorder() {
+		const blue = this.blueSelector.position;
+		const green = this.greenSelector.position;
+		const x = (blue.x+green.x) / 2;
+		const y = (blue.y+green.y) / 2;
+		const z = (blue.z+green.z) / 2;
+		const xscale = Math.abs(blue.x-green.x) + 1.025
+		const yscale = Math.abs(blue.y-green.y) + 1.025
+		const zscale = Math.abs(blue.z-green.z) + 1.025
+		this.arrayBorder.position.set(x, y, z);
+		this.arrayBorder.scale.set(xscale, yscale, zscale);
+		this.arrayBorder.updateMatrix();
 	}
 
 	get singleBlockSelectorPosition() {
-		const p = this.selectorMesh.position;
+		const p = this.blueSelector.position;
 		return {x: -p.z, y: p.y, z: p.x};
+	}
+
+	get arrayCorner1() {
+		const blue = this.blueSelector.position;
+		const green = this.greenSelector.position;
+		return {
+			x: Math.min(blue.x, green.x),
+			y: Math.min(blue.y, green.y),
+			z: Math.min(blue.z, green.z),
+		};
+	}
+
+	get arrayCorner2() {
+		const blue = this.blueSelector.position;
+		const green = this.greenSelector.position;
+		return {
+			x: Math.max(blue.x, green.x),
+			y: Math.max(blue.y, green.y),
+			z: Math.max(blue.z, green.z),
+		};
 	}
 }
 
@@ -418,6 +499,9 @@ export type CameraAdjustment = {
 
 export type SelectionMode =
 	| 'none'
+	| 'array'
+	| 'arrayBlue'
+	| 'arrayGreen'
 	| 'singleBlock';
 
 

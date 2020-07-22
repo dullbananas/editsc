@@ -12,6 +12,16 @@ export type MsgToExtension =
 		blockValue: number,
 	}
 	| {
+		kind: 'doBlockArrayAction',
+		actionId: number,
+		x: number,
+		y: number,
+		z: number,
+		w: number,
+		h: number,
+		d: number,
+	}
+	| {
 		kind: 'buttonClicked',
 		callbackId: number,
 	}
@@ -32,10 +42,11 @@ export type MsgFromExtension =
 		content: string,
 	}
 	| {
-		kind: 'newSingleBlockAction',
+		kind: 'newAction',
 		id: number,
 		name: string,
 		icon: string,
+		actionType: 'block' | 'blockArray',
 	}
 	| {
 		kind: 'setBlock',
@@ -58,7 +69,13 @@ export type MsgFromExtension =
 type SingleBlockOpts = {
 	name: string,
 	icon: string,
-	onclick: (block: any) => void,
+	onclick: (block: BlockSelection) => void,
+};
+
+type BlockArrayOpts = {
+	name: string,
+	icon: string,
+	onclick: (blocks: BlockArraySelection) => void,
 };
 
 
@@ -98,7 +115,7 @@ class Block {
 
 
 class BlockSelection extends Block {
-	onchange: (newValue: number) => void
+	onchange: (newValue: number) => void;
 
 	constructor(value: number, onchange: (newValue: number) => void) {
 		super(value);
@@ -116,14 +133,53 @@ class BlockSelection extends Block {
 }
 
 
+class BlockArray {
+	width: number;
+	height: number;
+	depth: number;
+
+	constructor(w: number, h: number, d: number) {
+		this.width = w;
+		this.height = h;
+		this.depth = d;
+	}
+}
+
+
+class BlockArraySelection extends BlockArray {
+	onfill: (value: number) => void;
+	x: number;
+	y: number;
+	z: number;
+
+	constructor(opt: {
+		w: number, h: number, d: number,
+		x: number, y: number, z: number,
+		onfill: (value: number) => void,
+	}) {
+		super(opt.w, opt.h, opt.d);
+		this.x = opt.x;
+		this.y = opt.y;
+		this.z = opt.z;
+		this.onfill = opt.onfill;
+	}
+
+	fill(block: Block) {
+		this.onfill(block.value);
+	}
+}
+
+
 const Editsc = new (class EditscNs {
 	singleBlockActions: Array<(selection: BlockSelection) => void>;
+	blockArrayActions: Array<(selection: BlockArraySelection) => void>;
 	//ui: Array<UiComponent>;
 	blockInputCallbacks: Array<(block: Block) => void>;
 	buttonCallbacks: Array<() => void>;
 
 	constructor() {
 		this.singleBlockActions = [];
+		this.blockArrayActions = [];
 		this.blockInputCallbacks = [];
 		this.buttonCallbacks = [];
 		//this.ui = [];
@@ -148,6 +204,16 @@ const Editsc = new (class EditscNs {
 					}); }
 				);
 				this.singleBlockActions[msg.actionId]!(selection);
+				break;
+
+			case 'doBlockArrayAction':
+				const arraySelection = new BlockArraySelection({
+					w: msg.w, h: msg.h, d: msg.d,
+					x: msg.x, y: msg.y, z: msg.z,
+					onfill: (block: number) => { this.log("fill lol");
+					},
+				});
+				this.blockArrayActions[msg.actionId]!(arraySelection);
 				break;
 
 			case 'buttonClicked':
@@ -195,26 +261,6 @@ const Editsc = new (class EditscNs {
 	}
 
 	showUi(title: string, components: Array<UiComponent>) {
-		/*this.ui = components;
-		const uiMsg: Array<UiComponentMsg> = [];
-		for (const component of components) {
-			switch (component.kind) {
-				case 'blockInput':
-					uiMsg.push({
-						kind: 'blockInput',
-						name: component.name,
-					});
-					break;
-
-				case 'button':
-					uiMsg.push({
-						kind: 'button',
-						name: component.name,
-						icon: component.icon,
-					});
-					break;
-			}
-		}*/
 		this.sendMsg({kind: 'showUi', title: title, components: components});
 	}
 
@@ -235,7 +281,16 @@ const Editsc = new (class EditscNs {
 		const id: number = this.singleBlockActions.length;
 		this.singleBlockActions.push(opt.onclick);
 		this.sendMsg({
-			kind: 'newSingleBlockAction',
+			kind: 'newAction', actionType: 'block',
+			id: id, name: opt.name, icon: opt.icon
+		});
+	}
+
+	blockArrayAction(opt: BlockArrayOpts) {
+		const id: number = this.blockArrayActions.length;
+		this.blockArrayActions.push(opt.onclick);
+		this.sendMsg({
+			kind: 'newAction', actionType: 'blockArray',
 			id: id, name: opt.name, icon: opt.icon
 		});
 	}

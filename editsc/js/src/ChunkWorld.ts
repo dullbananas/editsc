@@ -38,6 +38,45 @@ export default class ChunkWorld {
 	}
 
 
+	fillBlocks(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, value: number) {
+		// Make point 1 corrdinates less than point 2
+		let tmp = 0;
+		if (x1 > x2) {
+			tmp = x1;
+			x1 = x2;
+			x2 = tmp;
+		}
+		if (y1 > y2) {
+			tmp = y1;
+			y1 = y2;
+			y2 = tmp;
+		}
+		if (z1 > z2) {
+			tmp = z1;
+			z1 = z2;
+			z2 = tmp;
+		}
+
+		const height = y2 - y1;
+
+		for (let x = x1; x <= x2; x++) {
+		for (let z = z1; z <= z2; z++) {
+			this.fillBlocksAtPoint(x, z, y1, height, value);
+		}}
+	}
+
+
+	fillBlocksAtPoint(x: number, z: number, startY: number, amount: number, value: number) {
+		const coords = getChunkCoords(x, z);
+		const chunk = this.getChunkAt(x, z);
+
+		chunk!.fillBlocksByIndex(
+			getBlockIndex(coords.blockZ, startY, coords.blockX),
+			amount, value
+		);
+	}
+
+
 	getChunkAt(x: number, z: number): Chunk | undefined {
 		const coords = getChunkCoords(x, z);
 
@@ -74,6 +113,7 @@ export default class ChunkWorld {
 			);
 			this.chunks.push(newChunk);
 		}
+		//this.fillBlocks(-120,87,-109, -90,71,-83, 73);
 	}
 }
 
@@ -113,6 +153,26 @@ export class Chunk {
 			16 + (index << 2),
 			value, true
 		);
+	}
+
+
+	// coordinates 1 must be lower than coordinates 2
+	fillBlocks(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, value: number) {
+		const height = y2 - y1;
+		for (let x = x1; x <= x2; x++) {
+		for (let z = z1; z <= z2; z++) {
+			const start = getBlockIndex(x, y1, z);
+			this.fillBlocksByIndex(start, height, value);
+		}}
+	}
+
+
+	fillBlocksByIndex(start: number, amount: number, value: number) {
+		let index = 16 + (start<<2);
+		for (let n = 0; n < amount; n++) {
+			this.view.setUint32(index, value, true);
+			index += 4;
+		}
 	}
 
 
@@ -249,6 +309,7 @@ export class Chunk {
 		// Coordinates
 		this.x = view.getInt32(8, LittleEndian);
 		this.z = view.getInt32(12, LittleEndian);
+		//this.fillBlocks(1,64,1, 14,66,14, 73);
 	}
 }
 
