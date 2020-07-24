@@ -2,6 +2,7 @@ import BlockType from './Block';
 import * as Block from './Block';
 import {WorkerMsg} from './ChunkWorker';
 import * as THREE from 'three';
+import {StreamHelper} from './WorldFile';
 
 
 const LittleEndian = true;
@@ -95,8 +96,13 @@ export default class ChunkWorld {
 
 	constructor() {
 		this.chunks = [];
-		this.arrayBuffer = new ArrayBuffer(0);
+		//this.arrayBuffer = new ArrayBuffer(0);
 	}
+
+
+	/*get arrayBuffer(): ArrayBuffer {
+		throw "todo: chunk worl.arraybuffer";
+	}*/
 
 
 	async loadArrayBuffer(arrayBuffer: ArrayBuffer) {
@@ -115,7 +121,219 @@ export default class ChunkWorld {
 		}
 		//this.fillBlocks(-120,87,-109, -90,71,-83, 73);
 	}
+
+
+	async loadStreamHelper(streamHelper: StreamHelper): Promise<void> {
+		const streamHelperHelper = new StreamHelperHelper(streamHelper);
+		console.log('aa0');
+
+		// Directory (ignored)
+		await streamHelperHelper.read(786444);
+		console.log('aa1');
+
+		while (true) {
+			const buffer: ArrayBuffer = await streamHelperHelper.read(263184);
+			if (streamHelperHelper.end) {
+				break;
+			}
+			console.log('aa2');
+			this.chunks.push(new Chunk(new DataView(buffer)));
+			console.log(this.chunks.length);
+		}
+		//await this.loadArrayBuffer(await streamHelperHelper.getAll());
+	}
 }
+
+
+class StreamHelperHelper {
+	streamHelper: StreamHelper;
+	end: boolean;
+	private collectedData: Array<Uint8Array>;
+	private dataCallback: () => void;
+	private endCallback: () => void;
+
+	constructor(streamHelper: StreamHelper) {
+		this.streamHelper = streamHelper;
+		this.collectedData = [];
+		this.end = false;
+		this.dataCallback = () => {};
+		this.endCallback = () => {};
+
+		this.streamHelper.on('end', () => {
+			this.end = true;
+			this.endCallback();
+		});
+		this.streamHelper.on('data', (data: ArrayBuffer, meta: any) => {
+			console.log(meta);
+			this.streamHelper.pause();
+			this.collectedData.push(new Uint8Array(data));
+			this.dataCallback();
+		});
+	}
+
+	async read(amount: number): Promise<ArrayBuffer> {
+		console.log('q0');
+		await this.collectBytes(amount);
+		console.log('q1');
+		if (this.end) {
+			console.log('q2');
+			return new ArrayBuffer(0);
+		}
+		const result = new Uint8Array(amount);
+
+		let offset = 0;
+		let index = 0;
+		for (const arr of this.collectedData) {
+			//console.log('q3');
+			console.log(arr);
+			if (offset + arr.length > amount) {
+				break;
+			}
+			result.set(arr, offset);
+			offset += arr.length;
+			index++;
+		}
+		console.log('q4');
+
+		this.collectedData.splice(0, index);
+		const arr: Uint8Array | undefined = this.collectedData[0];
+		if (arr) {
+			console.log('q5');
+			const remainingBytesNeeded: number = amount - offset;
+			result.set(arr.subarray(0, remainingBytesNeeded), offset);
+			this.collectedData[0]! = arr.subarray(remainingBytesNeeded);
+		}
+
+		console.log('q6');
+		console.log(result);
+		return result.buffer;
+	}
+
+	private get collectedBytes(): number {
+		let result = 0;
+		for (const arr of this.collectedData) {
+			result += arr.length;
+		}
+		return result;
+	}
+
+	async collectBytes(amount: number) {
+		while (this.collectedBytes < amount) {
+			console.log('ea0');
+			const promise: Promise<void> = new Promise(resolve => {
+				this.dataCallback = resolve;
+				this.endCallback = resolve;
+			});
+			console.log('ea1');
+			this.streamHelper.resume();
+			console.log('ea2');
+			if (this.end) {
+				return;
+			}
+			console.log('ea3');
+			await promise;
+			console.log('ea4');
+		}
+	}
+}
+
+
+/*class StreamHelperHelper {
+	streamHelper: StreamHelper;
+	// Holds extra bytes remaining after getBytes is called
+	leftover: Uint8Array;
+	resolveData: (data: Uint8Array) => void;
+	resolveEnd: () => void;
+
+	constructor(streamHelper: StreamHelper) {
+		this.streamHelper = streamHelper;
+		this.leftover = new Uint8Array(0);
+		this.resolveData = (data) => {};
+		this.resolveEnd = () => {};
+
+		this.streamHelper.on('data', (data: ArrayBuffer, meta: any) => {
+			//console.log(meta);
+			this.streamHelper.pause();
+			this.resolveData(new Uint8Array(data));
+			//console.log("Resolved lol");
+			//console.log(meta.percent);
+		});
+
+		this.streamHelper.on('end', () => {
+			console.log("END LOL");
+			this.resolveEnd();
+		});
+	}
+
+	getBytes(bytes: number): Promise<ArrayBuffer | null> {
+		return new Promise(resolve => {
+			let end = false;
+			this.resolveEnd = () => {end = true;};
+
+			// repeat until enough bytes are read
+			while (this.nextBuffer.byteLength >= bytes) {
+				this.streamHelper.on('data', (data: ArrayBuffer, meta: any) => {
+					const oldBuffer = this.nextBuffer;
+					const newBuffer = new ArrayBuffer(oldBuffer.byteLength + data.byteLength);
+					const view = new Uint8Array(newBuffer);
+					view.set(oldBuffer, 0);
+					view.set(newBuffer, oldBuffer.byteLength)
+					this.nextBuffer = newBuffer;
+				});
+			}
+			(async () => {
+				console.log('b0');
+				const result = new Uint8Array(bytes);
+				result.set(this.leftover, 0);
+				let offset = this.leftover.length;
+
+				while (true) {
+					if (end) {
+						return null;
+					}
+					console.log('b1');
+					const nextData: Uint8Array = await this.getNextData();
+					console.log('b2');
+					if (offset + nextData.length < bytes) {
+						result.set(nextData, offset);
+						offset += nextData.length;
+						console.log('b3');
+					}
+					else {
+						const finalData = nextData.subarray(0, bytes - offset);
+						result.set(finalData, offset);
+						this.leftover = nextData.subarray(bytes - offset);
+						console.log('b4');
+						break;
+					}
+				}
+				console.log('b5');
+				return result.buffer;
+			})().then(resolve);
+		});
+	}
+
+	async getAll(): Promise<ArrayBuffer> {
+		let end = false;
+		this.resolveEnd = () => {end = true;};
+		let result = new Uint8Array(0);
+		while (!end) {
+			const nextData: Uint8Array = await this.getNextData();
+			const oldResult = result;
+			result = new Uint8Array(oldResult.length + nextData.length);
+			result.set(oldResult, 0);
+			result.set(nextData, oldResult.length);
+		}
+		return result.buffer;
+	}
+
+	private getNextData(): Promise<Uint8Array> {
+		return new Promise(resolve => {
+			this.resolveData = resolve;
+			this.streamHelper.resume();
+		});
+	}
+}*/
 
 
 

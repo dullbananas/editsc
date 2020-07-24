@@ -2,8 +2,16 @@ const JSZip = require('jszip');
 //const download = require('downloadjs');
 
 
+export interface StreamHelper {
+	on(event: 'data'|'error'|'end', callback: any): void;
+	resume(): void;
+	pause(): void;
+}
+
+
 export default class WorldFile {
 	chunks: ArrayBuffer;
+	chunksStreamHelper: StreamHelper | null;
 	project: string;
 	inputElement: HTMLInputElement;
 
@@ -11,6 +19,7 @@ export default class WorldFile {
 		this.chunks = new ArrayBuffer(0);
 		this.project = "";
 		this.inputElement = inputElement;
+		this.chunksStreamHelper = null;
 	}
 
 	async init(reportError: any) {
@@ -26,7 +35,8 @@ export default class WorldFile {
 
 				if ( chunksObj && projectObj ) {
 					this.project = await projectObj.async('string');
-					this.chunks = await chunksObj.async('arraybuffer');
+					//this.chunks = await chunksObj.async('arraybuffer');
+					this.chunksStreamHelper = chunksObj.internalStream('arraybuffer') as StreamHelper;
 				}
 				else {
 					const filenames: Array<String> = [];

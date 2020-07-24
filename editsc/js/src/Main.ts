@@ -63,7 +63,7 @@ async function handleMsg(msg: FromElm) {
 
 		case 'loadChunksFile':
 			try {
-				await chunkWorld.loadArrayBuffer(worldFile!.chunks);
+				await chunkWorld.loadStreamHelper(worldFile!.chunksStreamHelper!);
 				sendToElm({kind: 'chunksFileLoaded'});
 			}
 			catch (err) {
