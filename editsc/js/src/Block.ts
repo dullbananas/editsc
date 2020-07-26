@@ -38,18 +38,22 @@ const tmpObj = new THREE.Object3D();
 
 
 const rotations: Array<THREE.Euler> = [];
+const tmpObjs: Array<THREE.Object3D> = [];
 
 
 for (let facei = 0; facei < 6; facei++) {
 	const face = facei as Face;
 	const vec = faceVectors[face];
 	const hvec = halfVectors[face];
-	//tmpObj.position.set(hvec.x, hvec.y, -hvec.z);
 	tmpObj.position.set(0, 0, 0);
 	tmpObj.lookAt(vec.x, vec.y, -vec.z);
 	tmpObj.updateMatrix();
-	rotations.push(tmpObj.rotation.clone());
-	console.log(tmpObj.rotation);
+	const newRotation = tmpObj.rotation.clone();
+	rotations.push(newRotation);
+	const newObj = new THREE.Object3D();
+	newObj.rotation.copy(newRotation);
+	newObj.updateMatrix();
+	tmpObjs.push(newObj);
 }
 console.log(rotations);
 
@@ -61,19 +65,14 @@ export function addFace(
 	x: number, y: number, z: number
 ) {
 	const hvec = halfVectors[face];
-	tmpObj.position.set(
-		/*x + vec.x*0.5,
-		y + vec.y*0.5,
-		z - vec.z*0.5,*/
+	const obj = tmpObjs[face]!;
+	obj.position.set(
 		x + hvec.x,
 		y + hvec.y,
 		z - hvec.z,
 	);
-	//const vec = faceVectors[face];
-	//tmpObj.lookAt(vec.x+x, vec.y+y, -vec.z+z);
-	tmpObj.rotation.copy(rotations[face]!);
-	tmpObj.updateMatrix();
-	mesh.setMatrixAt(meshIndex, tmpObj.matrix);
+	obj.updateMatrix();
+	mesh.setMatrixAt(meshIndex, obj.matrix);
 }
 
 
