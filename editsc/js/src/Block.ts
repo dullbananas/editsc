@@ -64,15 +64,63 @@ export function addFace(
 	face: Face,
 	x: number, y: number, z: number
 ) {
-	const hvec = halfVectors[face];
+	//const hvec = halfVectors[face];
 	const obj = tmpObjs[face]!;
 	obj.position.set(
-		x + hvec.x,
-		y + hvec.y,
-		z - hvec.z,
+		x,// + hvec.x,
+		y,// + hvec.y,
+		z,// - hvec.z,
 	);
 	obj.updateMatrix();
 	mesh.setMatrixAt(meshIndex, obj.matrix);
+}
+
+
+const faceVertices = new THREE.BufferAttribute(
+	new Float32Array([
+		0.5, -0.5, 0.5,
+		-0.5, -0.5, 0.5,
+		0.5, 0.5, 0.5,
+		-0.5, 0.5, 0.5,
+	]), 3
+);
+const faceNormals = new THREE.BufferAttribute(
+	new Float32Array([
+		0, 0, 1,
+		0, 0, 1,
+		0, 0, 1,
+		0, 0, 1,
+		0, 0, 1,
+		0, 0, 1,
+	]), 3
+);
+const faceUvs = new THREE.BufferAttribute(
+	new Float32Array([
+		0, 1,
+		1, 1,
+		0, 0,
+		1, 0,
+	]), 2
+);
+const faceTriangles = [
+	0, 2, 1,
+	2, 3, 1,
+];
+function faceGeometry(): THREE.BufferGeometry {
+	/*
+	vertex indexes:
+	3----2
+	|    |
+	|    |
+	1----0
+	+z is forward
+	*/
+	const geometry = new THREE.BufferGeometry();
+	geometry.setAttribute('position', faceVertices);
+	geometry.setAttribute('normal', faceNormals);
+	geometry.setAttribute('uv', faceUvs);
+	geometry.setIndex(faceTriangles);
+	return geometry;
 }
 
 
@@ -81,7 +129,7 @@ export default class BlockType {
 	condition: BlockCondition;
 	x: number;
 	y: number;
-	_color: number;
+	_color: THREE.Color;
 	texture: THREE.Texture;
 	_transparent: boolean;
 	//matchesBlockValue: (block: number) => boolean;
@@ -94,7 +142,7 @@ export default class BlockType {
 		//this.matchesBlockValue = (block: number) => (block & 0b1111111111) === id;
 		this.x = x;
 		this.y = y;
-		this._color = 0xffffff;
+		this._color = new THREE.Color(0xffffff);
 		this._transparent = false;
 		BlockType.all.push(this);
 
@@ -107,10 +155,10 @@ export default class BlockType {
 	}
 
 	async chunkMesh(faceCount: number): Promise<THREE.InstancedMesh> {
-		const geometry = new THREE.PlaneBufferGeometry(1, 1);
+		const geometry: THREE.BufferGeometry = faceGeometry();
 		const material = new THREE.MeshLambertMaterial({
 			map: this.texture,
-			color: new THREE.Color(this._color),
+			color: this._color,
 			transparent: this._transparent,
 		});
 		const mesh = new THREE.InstancedMesh(geometry, material, faceCount);
@@ -136,7 +184,7 @@ export default class BlockType {
 	}*/
 
 	color(color: number) {
-		this._color = color;
+		this._color = new THREE.Color(color);
 		return this;
 	}
 }
