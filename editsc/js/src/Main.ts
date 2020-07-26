@@ -87,9 +87,12 @@ async function handleMsg(msg: FromElm) {
 
 		case 'saveScworld':
 			if (worldFile) {
-				worldFile.chunks = chunkWorld.arrayBuffer;
+				console.log('mmm0');
+				worldFile.chunksBlob = await chunkWorld.createBlob();
 				worldFile.project = msg.projectFileContent;
+				console.log('mmm2');
 				worldFile.saveAs(msg.fileName);
+				console.log('mmm3');
 			}
 			break;
 

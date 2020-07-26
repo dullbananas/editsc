@@ -17,7 +17,7 @@ export type WorkerMsg =
 	}
 	| {
 		kind: 'init',
-		chunkData: DataView,
+		blockData: DataView,
 	};
 
 
@@ -59,14 +59,14 @@ self.onmessage = function(event: MessageEvent) {
 			break;
 
 		case 'init':
-			view = msg.chunkData;
+			view = msg.blockData;
 			break;
 	}
 };
 
 
 function getBlock(index: number): number | undefined {
-	return view.getUint32(16+(index<<2), true);
+	return view.getUint32(index<<2, true);
 }
 
 

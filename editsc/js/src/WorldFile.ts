@@ -10,13 +10,13 @@ export interface StreamHelper {
 
 
 export default class WorldFile {
-	chunks: ArrayBuffer;
+	chunksBlob: Blob;
 	chunksStreamHelper: StreamHelper | null;
 	project: string;
 	inputElement: HTMLInputElement;
 
 	constructor(inputElement: HTMLInputElement) {
-		this.chunks = new ArrayBuffer(0);
+		this.chunksBlob = new Blob([]);
 		this.project = "";
 		this.inputElement = inputElement;
 		this.chunksStreamHelper = null;
@@ -58,13 +58,18 @@ export default class WorldFile {
 	}
 
 	async saveAs(zipName: string) {
+		console.log('ss0');
 		const zip = new JSZip();
 		const rootDir: string = zipName.split(".")[0] + "/";
+		console.log('ss1');
 
 		zip.file(rootDir + "Project.xml", this.project);
-		zip.file(rootDir + "Chunks32h.dat", this.chunks);
+		zip.file(rootDir + "Chunks32h.dat", this.chunksBlob);
 
+		console.log('ss2');
 		const blob: Blob = await zip.generateAsync({type:'blob'});
-		require('downloadjs')(blob, zipName, "application/zip");
+		//require('downloadjs')(blob, zipName, "application/zip");
+		console.log('ss3');
+		require('downloadjs')(blob, zipName);
 	}
 }

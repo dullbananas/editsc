@@ -10,7 +10,7 @@ const LittleEndian = true;
 
 export default class ChunkWorld {
 	chunks: Array<Chunk>;
-	arrayBuffer: ArrayBuffer;
+	//arrayBuffer: ArrayBuffer;
 
 
 	getBlockAt(x: number, y: number, z: number): number | undefined {
@@ -100,26 +100,40 @@ export default class ChunkWorld {
 	}
 
 
-	/*get arrayBuffer(): ArrayBuffer {
-		throw "todo: chunk worl.arraybuffer";
-	}*/
-
-
-	async loadArrayBuffer(arrayBuffer: ArrayBuffer) {
-		this.arrayBuffer = arrayBuffer;
-		if ( ((arrayBuffer.byteLength - 786444) % 263184 ) != 0 ) {
-			throw "Invalid world byte length: " + arrayBuffer.byteLength;
+	async createBlob(): Promise<Blob> {
+		const promises: Array<Promise<ArrayBuffer>> = [];
+		promises.push(this.createDirectoryBuffer());
+		for (const chunk of this.chunks) {
+			promises.push(chunk.createArrayBuffer());
 		}
 
-		const chunkLength = (arrayBuffer.byteLength - 786444) / 263184;
-		for (let i = 0; i < chunkLength; i++) {
-			const offset = 786444 + (i * 263184);
-			let newChunk = new Chunk(
-				new DataView(this.arrayBuffer, offset, 263184)
-			);
-			this.chunks.push(newChunk);
+		const buffers: Array<ArrayBuffer> = await Promise.all(promises);
+		return new Blob(buffers);
+	}
+
+
+	async createDirectoryBuffer(): Promise<ArrayBuffer> {
+		const buffer = new ArrayBuffer(65537 * 12);
+		const view = new DataView(buffer);
+
+		for (let i = 0; i < 65537; i++) {
+			let x = 0;
+			let z = 0;
+			let index = -1;
+
+			const chunk: Chunk | undefined = this.chunks[i];
+			if (chunk) {
+				x = chunk.x;
+				z = chunk.z;
+				index = i;
+			}
+
+			view.setInt32(i*12 + 0, x, LittleEndian);
+			view.setInt32(i*12 + 4, z, LittleEndian);
+			view.setInt32(i*12 + 8, index, LittleEndian);
 		}
-		//this.fillBlocks(-120,87,-109, -90,71,-83, 73);
+
+		return buffer;
 	}
 
 
@@ -131,13 +145,16 @@ export default class ChunkWorld {
 		await streamHelperHelper.read(786444);
 		console.log('aa1');
 
+		// Each chunk is 263184 bytes long
 		while (true) {
-			const buffer: ArrayBuffer = await streamHelperHelper.read(263184);
+			const header: ArrayBuffer = await streamHelperHelper.read(16);
+			const blocks: ArrayBuffer = await streamHelperHelper.read(262144);
+			const surface: ArrayBuffer = await streamHelperHelper.read(1024);
 			if (streamHelperHelper.end) {
 				break;
 			}
 			console.log('aa2');
-			this.chunks.push(new Chunk(new DataView(buffer)));
+			this.chunks.push(new Chunk(header, blocks, surface));
 			console.log(this.chunks.length);
 		}
 		//await this.loadArrayBuffer(await streamHelperHelper.getAll());
@@ -172,11 +189,11 @@ class StreamHelperHelper {
 	}
 
 	async read(amount: number): Promise<ArrayBuffer> {
-		console.log('q0');
+		//console.log('q0');
 		await this.collectBytes(amount);
-		console.log('q1');
+		//console.log('q1');
 		if (this.end) {
-			console.log('q2');
+			//console.log('q2');
 			return new ArrayBuffer(0);
 		}
 		const result = new Uint8Array(amount);
@@ -185,7 +202,7 @@ class StreamHelperHelper {
 		let index = 0;
 		for (const arr of this.collectedData) {
 			//console.log('q3');
-			console.log(arr);
+			//console.log(arr);
 			if (offset + arr.length > amount) {
 				break;
 			}
@@ -193,19 +210,19 @@ class StreamHelperHelper {
 			offset += arr.length;
 			index++;
 		}
-		console.log('q4');
+		//console.log('q4');
 
 		this.collectedData.splice(0, index);
 		const arr: Uint8Array | undefined = this.collectedData[0];
 		if (arr) {
-			console.log('q5');
+			//console.log('q5');
 			const remainingBytesNeeded: number = amount - offset;
 			result.set(arr.subarray(0, remainingBytesNeeded), offset);
 			this.collectedData[0]! = arr.subarray(remainingBytesNeeded);
 		}
 
-		console.log('q6');
-		console.log(result);
+		//console.log('q6');
+		//console.log(result);
 		return result.buffer;
 	}
 
@@ -219,135 +236,37 @@ class StreamHelperHelper {
 
 	async collectBytes(amount: number) {
 		while (this.collectedBytes < amount) {
-			console.log('ea0');
+			//console.log('ea0');
 			const promise: Promise<void> = new Promise(resolve => {
 				this.dataCallback = resolve;
 				this.endCallback = resolve;
 			});
-			console.log('ea1');
+			//console.log('ea1');
 			this.streamHelper.resume();
-			console.log('ea2');
+			//console.log('ea2');
 			if (this.end) {
 				return;
 			}
-			console.log('ea3');
+			//console.log('ea3');
 			await promise;
-			console.log('ea4');
+			//console.log('ea4');
 		}
 	}
 }
 
 
-/*class StreamHelperHelper {
-	streamHelper: StreamHelper;
-	// Holds extra bytes remaining after getBytes is called
-	leftover: Uint8Array;
-	resolveData: (data: Uint8Array) => void;
-	resolveEnd: () => void;
-
-	constructor(streamHelper: StreamHelper) {
-		this.streamHelper = streamHelper;
-		this.leftover = new Uint8Array(0);
-		this.resolveData = (data) => {};
-		this.resolveEnd = () => {};
-
-		this.streamHelper.on('data', (data: ArrayBuffer, meta: any) => {
-			//console.log(meta);
-			this.streamHelper.pause();
-			this.resolveData(new Uint8Array(data));
-			//console.log("Resolved lol");
-			//console.log(meta.percent);
-		});
-
-		this.streamHelper.on('end', () => {
-			console.log("END LOL");
-			this.resolveEnd();
-		});
-	}
-
-	getBytes(bytes: number): Promise<ArrayBuffer | null> {
-		return new Promise(resolve => {
-			let end = false;
-			this.resolveEnd = () => {end = true;};
-
-			// repeat until enough bytes are read
-			while (this.nextBuffer.byteLength >= bytes) {
-				this.streamHelper.on('data', (data: ArrayBuffer, meta: any) => {
-					const oldBuffer = this.nextBuffer;
-					const newBuffer = new ArrayBuffer(oldBuffer.byteLength + data.byteLength);
-					const view = new Uint8Array(newBuffer);
-					view.set(oldBuffer, 0);
-					view.set(newBuffer, oldBuffer.byteLength)
-					this.nextBuffer = newBuffer;
-				});
-			}
-			(async () => {
-				console.log('b0');
-				const result = new Uint8Array(bytes);
-				result.set(this.leftover, 0);
-				let offset = this.leftover.length;
-
-				while (true) {
-					if (end) {
-						return null;
-					}
-					console.log('b1');
-					const nextData: Uint8Array = await this.getNextData();
-					console.log('b2');
-					if (offset + nextData.length < bytes) {
-						result.set(nextData, offset);
-						offset += nextData.length;
-						console.log('b3');
-					}
-					else {
-						const finalData = nextData.subarray(0, bytes - offset);
-						result.set(finalData, offset);
-						this.leftover = nextData.subarray(bytes - offset);
-						console.log('b4');
-						break;
-					}
-				}
-				console.log('b5');
-				return result.buffer;
-			})().then(resolve);
-		});
-	}
-
-	async getAll(): Promise<ArrayBuffer> {
-		let end = false;
-		this.resolveEnd = () => {end = true;};
-		let result = new Uint8Array(0);
-		while (!end) {
-			const nextData: Uint8Array = await this.getNextData();
-			const oldResult = result;
-			result = new Uint8Array(oldResult.length + nextData.length);
-			result.set(oldResult, 0);
-			result.set(nextData, oldResult.length);
-		}
-		return result.buffer;
-	}
-
-	private getNextData(): Promise<Uint8Array> {
-		return new Promise(resolve => {
-			this.resolveData = resolve;
-			this.streamHelper.resume();
-		});
-	}
-}*/
-
-
-
 export class Chunk {
 	x: number;
 	z: number;
-	view: DataView; // References part of the world's ArrayBuffer
+	blocks: DataView;
+	surface: DataView; // Contains temp and humidity
 
 
 	async createWorker(): Promise<Worker> {
 		const worker = new Worker("../static/ChunkWorker.js");
 		const message: WorkerMsg = {
 			kind: 'init',
-			chunkData: this.view,
+			blockData: this.blocks,
 		};
 		worker.postMessage(message);
 		return worker;
@@ -358,17 +277,16 @@ export class Chunk {
 		/*if (index < 0 || index > 65535) {
 			throw "invalid block index: " + index
 		}*/
-		return this.view.getUint32(
-			16 // Header size
-			+ (index << 2) // 4 * index
+		return this.blocks.getUint32(
+			index << 2 // 4 * index
 			, true // little endian
 		);
 	}
 
 
 	setBlock(index: number, value: number) {
-		this.view.setUint32(
-			16 + (index << 2),
+		this.blocks.setUint32(
+			index << 2,
 			value, true
 		);
 	}
@@ -386,9 +304,9 @@ export class Chunk {
 
 
 	fillBlocksByIndex(start: number, amount: number, value: number) {
-		let index = 16 + (start<<2);
+		let index = start<<2;
 		for (let n = 0; n < amount; n++) {
-			this.view.setUint32(index, value, true);
+			this.blocks.setUint32(index, value, true);
 			index += 4;
 		}
 	}
@@ -504,13 +422,12 @@ export class Chunk {
 	}
 
 
-	constructor(view: DataView) {
-		this.view = view;
-
+	constructor(header: ArrayBuffer, blocks: ArrayBuffer, surface: ArrayBuffer) {
 		// Magic numbers
+		const headerView = new DataView(header);
 		let magicNums = [
-			this.view.getUint32(0, LittleEndian),
-			this.view.getUint32(4, LittleEndian),
+			headerView.getUint32(0, LittleEndian),
+			headerView.getUint32(4, LittleEndian),
 		];
 		const correctNums = [0xDEADBEEF, 0xFFFFFFFE];
 		if (magicNums[0] != correctNums[0] || magicNums[1] != correctNums[1]) {
@@ -525,9 +442,37 @@ export class Chunk {
 		}
 
 		// Coordinates
-		this.x = view.getInt32(8, LittleEndian);
-		this.z = view.getInt32(12, LittleEndian);
-		//this.fillBlocks(1,64,1, 14,66,14, 73);
+		this.x = headerView.getInt32(8, LittleEndian);
+		this.z = headerView.getInt32(12, LittleEndian);
+
+		// Blocks
+		this.blocks = new DataView(blocks);
+
+		// Surface
+		this.surface = new DataView(surface);
+	}
+
+
+	async createArrayBuffer(): Promise<ArrayBuffer> {
+		const buffer = new ArrayBuffer(263184);
+		const arr = new Uint8Array(buffer);
+		const view = new DataView(buffer);
+
+		// Header
+		view.setUint32(0, 0xDEADBEEF, LittleEndian);
+		view.setUint32(4, 0xFFFFFFFE, LittleEndian);
+		view.setInt32(8, this.x, LittleEndian);
+		view.setInt32(12, this.z, LittleEndian);
+
+		// Blocks
+		const blockArr = new Uint8Array(this.blocks.buffer);
+		arr.set(blockArr, 16);
+
+		// Surface
+		const surfaceArr = new Uint8Array(this.surface.buffer);
+		arr.set(surfaceArr, 262160);
+
+		return buffer;
 	}
 }
 
