@@ -255,6 +255,11 @@ class StreamHelperHelper {
 }
 
 
+export async function createChunkWorker(): Promise<Worker> {
+	return new Worker("../static/ChunkWorker.js");
+}
+
+
 export class Chunk {
 	x: number;
 	z: number;
@@ -262,14 +267,12 @@ export class Chunk {
 	surface: DataView; // Contains temp and humidity
 
 
-	async createWorker(): Promise<Worker> {
-		const worker = new Worker("../static/ChunkWorker.js");
+	initWorker(worker: Worker) {
 		const message: WorkerMsg = {
 			kind: 'init',
 			blockData: this.blocks,
 		};
 		worker.postMessage(message);
-		return worker;
 	}
 
 
