@@ -339,13 +339,21 @@ view model =
         , id "ui"
         , clip
         --, scrollbarY
-        , behindContent <| html <|
-            Touch.element
-                [ Html.Attributes.style "width" "100vw"
-                , Html.Attributes.style "height" "100vh"
-                ] TouchMsg
+        , behindContent <| el
+            [ inFront <| html <|
+                Touch.element
+                    [ Html.Attributes.style "width" "100vw"
+                    , Html.Attributes.style "height" "100vh"
+                    ] TouchMsg
+            ]
+            ( chunkCanvas )
         ]
         ( body model )
+
+
+chunkCanvas : Element Msg
+chunkCanvas =
+    html <| Html.node "chunk-canvas" [] []
 
 
 uiAttrs : Theme -> List (Attribute Msg)

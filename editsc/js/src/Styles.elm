@@ -17,26 +17,13 @@ main =
             , overflow hidden
             --, backgroundColor (rgb 128 128 128)
             , backgroundColor (rgb 255 255 255)
+            , width (vw 100)
             ]
 
-        , each [ id "world-canvas", {-id "ui",-} html, body ]
-            [ width (vw 100)
-            --, height (pct 100)
-            --, height (vh 100)
-            ]
-
-        , id "world-canvas"
-            [ zIndex (int -4)
-            ]
-
-        , id "ui"
+        {-, id "ui"
             [ zIndex (int 4)
             , position absolute
             , top zero
             , left zero
-            ]
-
-        , everything
-            [-- touchAction none
-            ]
+            ]-}
         ]

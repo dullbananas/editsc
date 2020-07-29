@@ -1,7 +1,8 @@
 import ExtensionManager, {ActionType} from './Extension';
 import ChunkWorld from './ChunkWorld';
 import ChunkView, {SelectionMode, CameraAdjustment} from './ChunkView';
-import WorldFile from './WorldFile'
+import WorldFile from './WorldFile';
+import {initChunkCanvas} from './ChunkCanvas';
 
 
 const Elm = require('./Main.elm').Elm;
@@ -16,14 +17,9 @@ Elm.Styles.init({
 
 
 const chunkWorld = new ChunkWorld();
-
-const chunkView = new ChunkView(
-	document.getElementById('world-canvas') as HTMLCanvasElement,
-	//sendToElm,
-);
-
+const chunkView = new ChunkView();
+initChunkCanvas(chunkView);
 let worldFile: WorldFile | null = null;
-
 const extensionManager = new ExtensionManager(sendToElm, chunkWorld, chunkView);
 
 

@@ -7,10 +7,10 @@ import {BlockCondition, WorkerMsg} from './ChunkWorker';
 
 
 export default class ChunkView {
-	constructor(canvas: HTMLCanvasElement) {
+	constructor() {
 		this.initScene();
 		this.initCamera();
-		this.initRenderer(canvas);
+		this.initRenderer();
 
 		this.initLight();
 		this.initAdjustmentVectors();
@@ -68,15 +68,16 @@ export default class ChunkView {
 	}
 
 
+	canvas: HTMLElement;
 	private pixelDensity: number;
 	private renderer: THREE.WebGLRenderer;
-	initRenderer(canvas: HTMLCanvasElement) {
+	initRenderer() {
 		this.renderer = new THREE.WebGLRenderer({
-			canvas: canvas,
 			stencil: false,
 			antialias: true,
 			powerPreference: 'low-power',
 		});
+		this.canvas = this.renderer.domElement;
 		this.pixelDensity = Math.trunc(window.devicePixelRatio);
 	}
 
@@ -154,20 +155,6 @@ export default class ChunkView {
 			mesh.position.set(chunk.z << 4, 0, -(chunk.x << 4));
 
 			let meshIndex = 0;
-			/*await chunk.iterBlocks(function(block, x, y, z) {
-				const faces = chunk.blockFaces(condition, x, y, z);
-				for (let facei = 0; facei < 6; facei++) {
-					if (faces & (1<<facei)) {
-						Block.addFace(
-							meshIndex,
-							mesh,
-							facei as Block.Face,
-							x, y, -z
-						);
-						meshIndex++;
-					}
-				}
-			}, (b: number) => condition(b) && meshIndex < faceCount);*/
 			const blockFacesMsg: WorkerMsg = {kind: 'getBlockFaces', condition: wcondition};
 			//console.log(69);
 			worker.postMessage(blockFacesMsg);
