@@ -57,19 +57,41 @@ export default class ChunkWorld {
 			z1 = z2;
 			z2 = tmp;
 		}
+		console.log("AAA");
+		console.log(x1,y1,z1);
+		console.log(x2,y2,z2);
+		console.log(value);
 
 		const height = y2 - y1;
 
+		const resultd: Record<number, Record<number, Chunk | undefined>> = {};
 		for (let x = x1; x <= x2; x++) {
 		for (let z = z1; z <= z2; z++) {
 			this.fillBlocksAtPoint(x, z, y1, height, value);
+			const chunk = this.getChunkAt(x, z);
+			if (chunk) {
+				resultd[chunk.x] = resultd[chunk.x] || {};
+				resultd[chunk.x]![chunk.z] = chunk;
+			}
 		}}
+
+		/*const result: Array<Chunk> = [];
+		for (const cx in resultd) {
+			const chunks = resultd[cx]!;
+			for (const cz in chunks) {
+				result.push(chunks[cz]!);
+			}
+		}
+		return result;*/
+		return [];
 	}
 
 
 	fillBlocksAtPoint(x: number, z: number, startY: number, amount: number, value: number) {
 		const coords = getChunkCoords(x, z);
 		const chunk = this.getChunkAt(x, z);
+
+		if (!chunk) { return; }
 
 		chunk!.fillBlocksByIndex(
 			getBlockIndex(coords.blockZ, startY, coords.blockX),

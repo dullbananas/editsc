@@ -14,12 +14,12 @@ export type MsgToExtension =
 	| {
 		kind: 'doBlockArrayAction',
 		actionId: number,
-		x: number,
-		y: number,
-		z: number,
-		w: number,
-		h: number,
-		d: number,
+		x1: number,
+		y1: number,
+		z1: number,
+		x2: number,
+		y2: number,
+		z2: number,
 	}
 	| {
 		kind: 'buttonClicked',
@@ -53,6 +53,16 @@ export type MsgFromExtension =
 		x: number,
 		y: number,
 		z: number,
+		newValue: number,
+	}
+	| {
+		kind: 'fill',
+		x1: number,
+		y1: number,
+		z1: number,
+		x2: number,
+		y2: number,
+		z2: number,
 		newValue: number,
 	}
 	| {
@@ -148,19 +158,25 @@ class BlockArray {
 
 class BlockArraySelection extends BlockArray {
 	onfill: (value: number) => void;
-	x: number;
-	y: number;
-	z: number;
+	x1: number;
+	y1: number;
+	z1: number;
+	x2: number;
+	y2: number;
+	z2: number;
 
 	constructor(opt: {
-		w: number, h: number, d: number,
-		x: number, y: number, z: number,
+		x1: number, y1: number, z1: number,
+		x2: number, y2: number, z2: number,
 		onfill: (value: number) => void,
 	}) {
-		super(opt.w, opt.h, opt.d);
-		this.x = opt.x;
-		this.y = opt.y;
-		this.z = opt.z;
+		super(0, 0, 0);
+		this.x1 = opt.x1;
+		this.y1 = opt.y1;
+		this.z1 = opt.z1;
+		this.x2 = opt.x2;
+		this.y2 = opt.y2;
+		this.z2 = opt.z2;
 		this.onfill = opt.onfill;
 	}
 
@@ -208,10 +224,14 @@ const Editsc = new (class EditscNs {
 
 			case 'doBlockArrayAction':
 				const arraySelection = new BlockArraySelection({
-					w: msg.w, h: msg.h, d: msg.d,
-					x: msg.x, y: msg.y, z: msg.z,
-					onfill: (block: number) => { this.log("fill lol");
-					},
+					x1: msg.x1, y1: msg.y1, z1: msg.z1,
+					x2: msg.x2, y2: msg.y2, z2: msg.z2,
+					onfill: (block: number) => { this.sendMsg({
+						kind: 'fill',
+						x1: msg.x1, y1: msg.y1, z1: msg.z1,
+						x2: msg.x2, y2: msg.y2, z2: msg.z2,
+						newValue: block,
+					}); },
 				});
 				this.blockArrayActions[msg.actionId]!(arraySelection);
 				break;

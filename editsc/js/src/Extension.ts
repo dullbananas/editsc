@@ -62,7 +62,18 @@ export default class ExtensionManager {
 				break;
 
 			case 'blockArray':
-				console.log("no");
+				const p1 = this.chunkView.arrayCorner1;
+				const p2 = this.chunkView.arrayCorner2;
+				this.sendMsg(this.workers[workerUrl]!, {
+					kind: 'doBlockArrayAction',
+					actionId: id,
+					x1: p1.x,
+					y1: p1.y,
+					z1: p1.z,
+					x2: p2.x,
+					y2: p2.y,
+					z2: p2.z,
+				});
 				break;
 		}
 	}
@@ -83,7 +94,7 @@ export default class ExtensionManager {
 		});
 	}
 
-	handleMsg(m: MsgFromExtension, url: string) {
+	async handleMsg(m: MsgFromExtension, url: string) {
 		console.log(m);
 		switch (m.kind) {
 			case 'alert':
@@ -120,6 +131,16 @@ export default class ExtensionManager {
 				}
 				else {
 					window.alert("chunk out of bounds");
+				}
+				break;
+
+			case 'fill':
+				/*const updatedChunks: Array<Chunk> = */this.chunkWorld.fillBlocks(
+					m.x1, m.y1, m.z1, m.x2, m.y2, m.z2, m.newValue
+				);
+				for (const chunk of this.chunkWorld.chunks) {
+					console.log(chunk);
+					await this.chunkView.updateChunk(chunk);
 				}
 				break;
 
