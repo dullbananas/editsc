@@ -1,5 +1,7 @@
 port module Port exposing (..)
 
+import Chunk exposing (Chunk)
+
 import Json.Encode as E
 import Json.Decode as D
 import Array exposing (Array)
@@ -28,6 +30,7 @@ type FromElm
     = ExtractScworldFile
     | LoadChunksFile
     | SwitchedToEditor
+    | GetInitialChunks
 
     --Save world
     | SaveScworld
@@ -89,6 +92,9 @@ encode msg =
 
         SwitchedToEditor ->
             encodeHelp "switchedToEditor" []
+
+        GetInitialChunks ->
+            encodeHelp "getInitialChunks" []
 
         SaveScworld { fileName, projectFileContent } ->
             encodeHelp "saveScworld"
@@ -174,6 +180,7 @@ type ToElm
     = GotProjectFile String
     | ChunksFileLoaded
     | ImportError String
+    | GotInitialChunks (List Chunk)
 
     --Extensions
     | NewAction ActionButton
@@ -226,6 +233,10 @@ decodeKind kind =
         "importError" ->
             D.map ImportError
                 ( D.field "message" D.string )
+
+        "gotInitialChunks" ->
+            D.map GotInitialChunks
+                ( D.field "chunks" decodeChunk )
 
         "newAction" ->
             D.map NewAction
@@ -286,3 +297,10 @@ decodeActionType =
             "blockArray" -> D.succeed BlockArrayAction
             _ -> D.fail "Invalid action type"
         )
+
+
+decodeChunk : D.Decoder { x : Int, z : Int }
+decodeChunk =
+    D.map2 Chunk
+        ( D.field "x" D.int )
+        ( D.field "z" D.int )

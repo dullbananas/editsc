@@ -11,6 +11,7 @@ import Port exposing (BlockArrayCorner(..))
 import Ui exposing (..)
 import World exposing (World)
 import BlocksData
+import Chunk exposing (Chunk)
 
 import Element exposing (..)
 import Element.Background as Background
@@ -31,6 +32,7 @@ import Task
 
 type alias Model =
     { world : String
+    , chunks : List Chunk
     , uiVisibility : Visibility
     , theme : Theme
     , menu : Menu
@@ -69,6 +71,7 @@ init : String -> ( Model, Cmd Msg )
 init world =
     Tuple.pair
         { world = world
+        , chunks = []
         , uiVisibility = Expanded
         , theme = Light
         , menu = MainMenu
@@ -84,6 +87,7 @@ init world =
         }
         ( Cmd.batch
             [ Port.send Port.SwitchedToEditor
+            , Port.send Port.GetInitialChunks
             , BlocksData.request GotBlocksData
             ]
         )
@@ -190,6 +194,8 @@ update msg model =
                     Tuple.pair
                         { model | progress = portion }
                         Cmd.none
+
+                Port.GotInitialChunks chunks ->
 
                 _ ->
                     ( model, Cmd.none )

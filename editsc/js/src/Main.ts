@@ -81,6 +81,15 @@ async function handleMsg(msg: FromElm) {
 			});
 			break;
 
+		case 'gotInitialChunks':
+			sendToElm({
+				kind: 'gotInitialChunks',
+				chunks: chunkWorld.chunks.map((chunk) => {
+					x: chunk.x, z: chunk.z,
+				}),
+			});
+			break;
+
 		case 'saveScworld':
 			if (worldFile) {
 				console.log('mmm0');

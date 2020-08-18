@@ -10,7 +10,6 @@ const LittleEndian = true;
 
 export default class ChunkWorld {
 	chunks: Array<Chunk>;
-	//arrayBuffer: ArrayBuffer;
 
 
 	getBlockAt(x: number, y: number, z: number): number | undefined {
