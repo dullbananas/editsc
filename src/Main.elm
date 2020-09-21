@@ -5,7 +5,8 @@ import Tuple exposing (pair)
 import Html
 
 import Ui exposing (Ui)
-import Filesystem
+import Port
+import WorldImporter exposing (WorldImporter)
 
 
 
@@ -27,22 +28,21 @@ main =
 
 
 type alias Model =
-    { projectXml : String
-    , currentMenu : Menu
+    { menu : Menu
     , previousMenus : List Menu
     }
 
 
 type Msg
     = GoBack
+    
+    | ScworldFileSubmitted
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     pair
-        { projectXml = ""
-        , chunks = []
-        , currentMenu = FileBrowser
+        { menu = FileImport WorldImporter.Waiting
         , previousMenus = []
         }
         Cmd.none
@@ -65,12 +65,19 @@ update msg model =
                 x :: xs ->
                     pair
                         { model
-                        | currentMenu = x
+                        | menu = x
                         , previousMenus = xs
                         } Cmd.none
 
                 [] ->
                     pair model Cmd.none
+        
+        ScworldFileSubmitted ->
+            pair
+                { model
+                | menu = FileImport WorldImporter.Extracting
+                }
+                WorldImporter.startExtracting
 
 
 
@@ -82,30 +89,33 @@ view model =
     Ui.document <| Ui.Col <|
         [ case List.head model.previousMenus of
             Just previousMenu ->
-                Ui.Button ("< "++menuTitle previousMenu) GoBack
+                --Ui.Button ("< "++menuTitle previousMenu) GoBack
+                Ui.Col []
 
             Nothing ->
                 Ui.Col []
 
-        , Ui.H1 (menuTitle model.currentMenu)
+        --, Ui.H1 (menuTitle model.menu)
+        , Ui.BodyText [ Ui.Text <| "Title:"++menuTitle model.menu ]
         , Ui.Col <| menuBody model
         ]
 
 
 type Menu
-    = FileBrowser
+    = FileImport WorldImporter
 
 
 menuTitle : Menu -> String
 menuTitle menu =
     case menu of
-        FileBrowser ->
-            "Files"
+        FileImport state ->
+            "Import world"
 
 
-menuBody : Menu -> List (Ui Msg)
+menuBody : Model -> List (Ui Msg)
 menuBody model =
     case model.menu of
-        FileBrowser ->
-            [ Ui.BodyText [ Ui.Text "file browser todo" ]
+        FileImport state ->
+            [ Ui.FileInput "scworldFile"
+            , Ui.Button ScworldFileSubmitted "Import world"
             ]

@@ -8,6 +8,7 @@ import Element as E
 import Element.Lazy as L
 import Element.Font as Font
 import Element.Background as Background
+import Element.Input as Input
 import Html
 import Html.Attributes
 import Browser
@@ -16,6 +17,8 @@ import Browser
 type Ui msg
     = Col (List (Ui msg))
     | BodyText (List TextEl)
+    | FileInput String
+    | Button msg String
 
 
 type TextEl
@@ -100,9 +103,24 @@ toElement ui =
         BodyText textEls ->
             textEls
                 |> List.intersperse (Text " ")
-                |> Debug.log "uh"
+                --|> Debug.log "uh"
                 |> List.map (L.lazy bodyTextEl)
                 |> E.paragraph bodyTextAttrs
+        
+        FileInput id ->
+            E.el [] <| E.html <|
+                Html.input
+                    [ Html.Attributes.type_ "file"
+                    , Html.Attributes.id id
+                    ] []
+        
+        Button msg label ->
+            Input.button
+                [ E.width E.fill
+                ]
+                { onPress = Just msg
+                , label = E.text ("btn:"++label)
+                }
 
 
 bodyTextEl : TextEl -> E.Element msg

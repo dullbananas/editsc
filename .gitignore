@@ -1,2 +1,5 @@
 elm-stuff
 public/*.js
+*.wasm
+*.o
+*.dub

@@ -1,0 +1,3 @@
+tasks:
+  - init: 'source init.sh'
+    command: 'source init.sh'

@@ -14,7 +14,7 @@ function module(name, imports, callback) {
 }
 
 
-function importModule(name) {
+async function importModule(name) {
 	if (loadedModules[name]) {
 		return loadedModules[name];
 	}
@@ -25,7 +25,7 @@ function importModule(name) {
 	}
 
 	const args = def.imports.map(importModule);
-	const module = def.callback.apply(null, args);
+	const module = await def.callback.apply(null, args);
 	loadedModules[name] = module;
 	return module;
 }

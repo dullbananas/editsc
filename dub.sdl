@@ -1,0 +1,11 @@
+name "editsc"
+targetType "executable"
+
+dependency "archive" version="~>0.7.0"
+
+dflags "-mtriple=wasm32-unknown-unknown-wasm"
+dflags "-L-allow-undefined"
+dflags "-betterC"
+dflags "-link-internally"
+dflags "-Isource src/main.d"
+dflags "-of=public/main.wasm"

@@ -2,22 +2,20 @@
 
 
 module('Main',
-['Filesystem'],
-(Filesystem) => {
-	const elm = Elm.Main.init();
-	const port = elm.ports;
+['Wasm'],
+async (Wasm) => {
+    const port = Elm.Main.init().ports;
 
 
 	port.toJs.subscribe(async (msg) => {
 		switch (msg.$) {
-			case 'ls':
-				const response = await Filesystem.ls(msg.path);
-				port.lsSub.send(response);
-				break;
+            case 'startExtracting':
+                console.log('extract');
+                break;
 
 			default:
-				console.error("Invalid msg name from elm: "+msg.$);
-		}
+                console.error("Invalid msg name from elm: "+msg.$);
+        }
 	});
 
 
