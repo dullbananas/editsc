@@ -37,6 +37,9 @@ type Msg
     = GoBack
     
     | ScworldFileSubmitted
+    | GotWorldFiles { project : Port.Value, chunks : Port.Value }
+
+    | PortDecodeError Port.DecodeError
 
 
 init : () -> ( Model, Cmd Msg )
@@ -49,8 +52,16 @@ init _ =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.none
+subscriptions model =
+    ( case model.menu of
+        FileImport state ->
+            WorldImporter.sub state
+                { gotFiles = GotWorldFiles
+                }
+
+        {-_ ->
+            always Sub.none-}
+    ) PortDecodeError
 
 
 
@@ -78,6 +89,26 @@ update msg model =
                 | menu = FileImport WorldImporter.Extracting
                 }
                 WorldImporter.startExtracting
+        
+        GotWorldFiles ({ project, chunks } as files) ->
+            Debug.todo "got world files"
+            {-WorldImporter.handleFiles files
+                ( \state ->
+                    { model | menu = FileImport state }
+                )-}
+            {-if WorldImporter.filePresent chunks
+            && WorldImporter.filePresent project
+                then
+                else
+                    pair
+                        { model
+                        | menu = FileImport WorldImport-}
+        
+        PortDecodeError error ->
+            let _ = Debug.log "Port decode error" error in
+            pair
+                model
+                Cmd.none
 
 
 
@@ -118,4 +149,5 @@ menuBody model =
         FileImport state ->
             [ Ui.FileInput "scworldFile"
             , Ui.Button ScworldFileSubmitted "Import world"
+            , Ui.BodyText [ Ui.Text <| Debug.toString state ]
             ]

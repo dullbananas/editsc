@@ -1,5 +1,5 @@
 elm-stuff
 public/*.js
 *.wasm
-*.o
-*.dub
+Cargo.lock
+target

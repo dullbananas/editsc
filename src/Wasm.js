@@ -1,18 +1,16 @@
 module('Wasm',
 [],
 async () => {
-    // These functions will be available to wasm
-    const imports = {};
+    const wasm = await import('./main-wasm.js');
+    // wasm.default is the init function
+    const {memory} = await wasm.default('./main.wasm');
+    console.log(wasm, memory);
 
-
-    const {exports} = await (async () => {
-        const response = await fetch("main.wasm");
-        const code = await response.arrayBuffer();
-        console.log(1);
-        return (await WebAssembly.instantiate(code, {env:imports})).instance;
-    })();
-    console.log(exports);
-
-
-    return {};
+    
+    wasm.set_panic_hook();
+    
+    
+    return {
+        ...wasm
+    };
 });

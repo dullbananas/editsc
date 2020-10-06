@@ -8,8 +8,9 @@ cat src/*.js >> public/Main.js
 echo "importModule('Main');" >> public/Main.js
 
 # main.wasm
-#ldc2 -mtriple=wasm32-unknown-unknown-wasm -L-allow-undefined -betterC -link-internally src/main.d
-#mv main.wasm -t public
-dub build --compiler=ldc2
+wasm-pack build --target web --no-typescript --dev
+mv pkg/*.wasm public/main.wasm
+mv pkg/*.js public/main-wasm.js
+rm -rf pkg
 
 echo "Build complete"
