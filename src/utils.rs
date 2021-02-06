@@ -1,14 +1,40 @@
 use wasm_bindgen::prelude::*;
 
+// Some macros are derrived from the standard library
+
 
 #[wasm_bindgen]
-pub fn set_panic_hook() {
-    // When the `console_error_panic_hook` feature is enabled, we can call the
-    // `set_panic_hook` function at least once during initialization, and then
-    // we will get better error messages if our code ever panics.
-    //
-    // For more details see
-    // https://github.com/rustwasm/console_error_panic_hook#readme
-    //#[cfg(feature = "console_error_panic_hook")]
-    console_error_panic_hook::set_once();
+extern "C" {
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    pub fn log_string(string: &str);
+}
+
+
+macro_rules! dbg {
+    /*() => {
+        $crate::eprintln!("[{}:{}]", $crate::file!(), $crate::line!());
+    };*/
+    ($val:expr $(,)?) => {
+        // Use of `match` here is intentional because it affects the lifetimes of temporaries - https://stackoverflow.com/a/48732525/1063961
+        match $val {
+            tmp => {
+                let output = ::std::format!(
+                    "[{}:{}] {} = {:#?}",
+                    ::std::file!(),
+                    ::std::line!(),
+                    ::std::stringify!($val),
+                    &tmp
+                );
+                // rust-analyzer falsely reports an error without this `unsafe` block
+                #[allow(unused_unsafe)]
+                unsafe {
+                    $crate::utils::log_string(&output);
+                }
+                tmp
+            }
+        }
+    };
+    ($($val:expr),+ $(,)?) => {
+        ($($crate::dbg!($val)),+,)
+    };
 }
