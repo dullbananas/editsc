@@ -1,14 +1,17 @@
 #[macro_use] mod utils;
+mod world;
 
 use seed::prelude::*;
-//use wasm_bindgen::prelude::*;
+use world::World;
 
 
 struct Model {
+    world: World,
 }
 
 fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
     Model {
+        world: World::init(),
     }
 }
 
