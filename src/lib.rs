@@ -44,7 +44,6 @@ fn update(
 
 fn view(model: &Model) -> Node<Msg> {
     seed::div![
-        "Hello world",
     ]
 }
 
@@ -52,7 +51,6 @@ fn view(model: &Model) -> Node<Msg> {
 #[wasm_bindgen(start)]
 pub fn main() {
     console_error_panic_hook::set_once();
-    dbg!("Hello world");
 
     App::start("main", init, update, view);
 }
