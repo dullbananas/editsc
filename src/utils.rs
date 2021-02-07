@@ -1,6 +1,6 @@
-use wasm_bindgen::prelude::*;
+/// Bindings and macros
 
-// Some macros are derrived from the standard library
+use wasm_bindgen::prelude::*;
 
 
 #[wasm_bindgen]
@@ -10,6 +10,7 @@ extern "C" {
 }
 
 
+// Derrived from the standard library
 macro_rules! dbg {
     /*() => {
         $crate::eprintln!("[{}:{}]", $crate::file!(), $crate::line!());

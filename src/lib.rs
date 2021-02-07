@@ -1,16 +1,22 @@
 #[macro_use] mod utils;
+mod viewport;
 mod world;
 
 use seed::prelude::*;
+use viewport::Viewport;
 use world::World;
 
 
 struct Model {
+    viewport: Viewport,
     world: World,
 }
 
 fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
+    let window = web_sys::window()
+        .unwrap();
     Model {
+        viewport: Viewport::from_window(&window),
         world: World::init(),
     }
 }
