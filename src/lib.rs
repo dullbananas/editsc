@@ -1,13 +1,17 @@
+mod page;
 #[macro_use] mod utils;
 mod viewport;
 mod world;
 
+use page::Page;
 use seed::prelude::*;
 use viewport::Viewport;
 use world::World;
 
 
 struct Model {
+    current_page: Page,
+    previous_pages: Vec<Page>,
     viewport: Viewport,
     world: World,
 }
@@ -16,6 +20,8 @@ fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
     let window = web_sys::window()
         .unwrap();
     Model {
+        current_page: Page::init(),
+        previous_pages: Vec::with_capacity(4),
         viewport: Viewport::from_window(&window),
         world: World::init(),
     }
