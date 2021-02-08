@@ -44,7 +44,11 @@ pub enum Ui<Ms> {
     Button {
         on_click: Ms,
         text: String,
-    }
+    },
+    InputFile {
+        on_change: Box<dyn Fn(web_sys::FileList) -> Ms>,
+        text: String,
+    },
 }
 
 pub use Ui::*;
@@ -60,8 +64,11 @@ impl<Ms> IntoNodes<Ms> for Ui<Ms> {
                     .flatten()
                     .collect(),
             
-                Button {on_click, text} =>
-                    todo!("button"),
+            Button {on_click, text} =>
+                todo!("button"),
+            
+            InputFile {on_change, text} =>
+                todo!("input file"),
         }
     }
 }
