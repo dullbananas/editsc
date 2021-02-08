@@ -1,11 +1,11 @@
 mod page;
+mod ui;
 #[macro_use] mod utils;
-mod viewport;
 mod world;
 
 use page::Page;
 use seed::prelude::*;
-use viewport::Viewport;
+use ui::Viewport;
 use world::World;
 
 
@@ -29,21 +29,32 @@ fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
 
 
 enum Msg {
+    Page(page::Msg),
 }
 
 
 fn update(
-    msg: Msg,
+    main_msg: Msg,
     model: &mut Model,
-    _: &mut impl Orders<Msg>,
+    orders: &mut impl Orders<Msg>,
 ) {
-    match msg {
+    match main_msg {
+        Msg::Page(msg) =>
+            model.current_page.update(
+                msg,
+                &mut orders.proxy(Msg::Page),
+            ),
     }
 }
 
 
 fn view(model: &Model) -> Node<Msg> {
     seed::div![
+        seed::div![
+            model.current_page
+                .view()
+                .map_msg(Msg::Page),
+        ],
     ]
 }
 
