@@ -1,5 +1,5 @@
 use seed::{prelude::*, *};
-use web_sys::Window;
+use web_sys::{FileList, HtmlInputElement, Window};
 
 
 pub struct Viewport {
@@ -46,7 +46,7 @@ pub enum Ui<Ms> {
         text: String,
     },
     InputFile {
-        on_change: Box<dyn Fn(web_sys::FileList) -> Ms>,
+        on_change: std::rc::Rc<dyn Fn(FileList) -> Ms>,
         text: String,
     },
 }
@@ -57,18 +57,36 @@ pub use Ui::*;
 impl<Ms> IntoNodes<Ms> for Ui<Ms> {
     fn into_nodes(self) -> Vec<Node<Ms>> {
         match self {
-            Combine {items} =>
+            Combine {items} => {
                 items
                     .into_iter()
                     .map(IntoNodes::into_nodes)
                     .flatten()
-                    .collect(),
+                    .collect()
+            },
             
-            Button {on_click, text} =>
-                todo!("button"),
+            Button {on_click, text} => todo!("button"),
             
-            InputFile {on_change, text} =>
-                todo!("input file"),
+            InputFile {on_change, text} => vec![
+                // a lifetime issue occured with `Ms`
+                /*input![
+                    attrs!{
+                        At::Type => "file",
+                    },
+                    ev(Ev::Change, move |event| {
+                        let target = event
+                            .current_target()
+                            .unwrap();
+                        let files = wasm_bindgen::JsCast
+                            ::dyn_into
+                                ::<HtmlInputElement>(target)
+                            .unwrap()
+                            .files()
+                            .unwrap();
+                        on_change.clone()(files)
+                    }),
+                ],*/
+            ],
         }
     }
 }
