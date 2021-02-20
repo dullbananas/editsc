@@ -4,6 +4,10 @@ use super::ui::*;
 
 pub enum Page {
     Home,
+
+    Import {
+        files: web_sys::FileList,
+    },
 }
 
 
@@ -28,9 +32,7 @@ impl Page {
 
 
     pub fn view(&self) -> Vec<Node<Msg>> {
-        Combine {
-            items: vec![
-            ]
-        }.into_nodes()
+        Ui::combine(vec![
+        ]).into_nodes()
     }
 }

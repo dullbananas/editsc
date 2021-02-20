@@ -1,5 +1,5 @@
 use seed::{prelude::*, *};
-use web_sys::{FileList, HtmlInputElement, Window};
+use web_sys::Window;
 
 
 pub struct Viewport {
@@ -36,44 +36,64 @@ fn unwrap_u32(result: Result<JsValue, JsValue>) -> u32 {
 }
 
 
-pub enum Ui<Ms> {
-    Combine {
-        items: Vec<Ui<Ms>>,
-    },
-
-    Button {
-        on_click: Ms,
-        text: String,
-    },
-    InputFile {
-        on_change: std::rc::Rc<dyn Fn(FileList) -> Ms>,
-        text: String,
-    },
+pub struct Ui<Ms> {
+    nodes: Vec<Node<Ms>>,
 }
 
-pub use Ui::*;
+
+trait IntoUi<Ms> {
+    fn into_ui(self) -> Ui<Ms>;
+}
+
+impl<Ms> IntoUi<Ms> for Vec<Node<Ms>> {
+    fn into_ui(self) -> Ui<Ms> {
+        Ui { nodes: self }
+    }
+}
 
 
-impl<Ms> IntoNodes<Ms> for Ui<Ms> {
-    fn into_nodes(self) -> Vec<Node<Ms>> {
-        match self {
-            Combine {items} => {
-                items
-                    .into_iter()
-                    .map(IntoNodes::into_nodes)
-                    .flatten()
-                    .collect()
-            },
-            
-            Button {on_click, text} => todo!("button"),
-            
-            InputFile {on_change, text} => vec![
-                // a lifetime issue occured with `Ms`
-                /*input![
-                    attrs!{
-                        At::Type => "file",
-                    },
-                    ev(Ev::Change, move |event| {
+impl<Ms> Ui<Ms> {
+    pub fn combine(items: Vec<Self>) -> Self {
+        Ui {
+            nodes: items
+                .into_iter()
+                .map(IntoNodes::into_nodes)
+                .flatten()
+                .collect(),
+        }
+    }
+
+
+    pub fn button(label: String, on_click: Ms) -> Self {
+        todo!("button")
+    }
+
+
+    pub fn column(rows: Vec<Row<Ms>>) -> Self {
+        rows
+            .into_iter()
+            .map(|Row {nodes}| nodes)
+            .flatten()
+            .collect::<Vec<Node<Ms>>>()
+            .into_ui()
+    }
+
+
+    /*pub fn file_input(
+        label: String,
+        on_change: impl FnOnce(FileList) -> Ms + 'static + Clone,
+    ) -> Self
+    where
+        Ms: 'static,
+    {
+        vec![
+            input![
+                attrs!{
+                    At::Type => "file",
+                },
+                ev(
+                    Ev::Change,
+                    move |event| {
                         let target = event
                             .current_target()
                             .unwrap();
@@ -83,10 +103,22 @@ impl<Ms> IntoNodes<Ms> for Ui<Ms> {
                             .unwrap()
                             .files()
                             .unwrap();
-                        on_change.clone()(files)
-                    }),
-                ],*/
+                        Some(on_change(files))
+                    },
+                ),
             ],
-        }
+        ].into_ui()
+    }*/
+}
+
+
+impl<Ms> IntoNodes<Ms> for Ui<Ms> {
+    fn into_nodes(self) -> Vec<Node<Ms>> {
+        self.nodes
     }
+}
+
+
+pub struct Row<Ms> {
+    nodes: Vec<Node<Ms>>,
 }
