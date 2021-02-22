@@ -39,6 +39,4 @@ fn view(model: &Model) -> Node<Msg> {
 #[wasm_bindgen(start)]
 pub fn main() {
     console_error_panic_hook::set_once();
-
-    App::start("main", init, update, view);
 }
