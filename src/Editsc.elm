@@ -1,13 +1,14 @@
 module Editsc exposing (main)
 
 import Browser
+import Html
 
 
 main : Program () Model Never
 main =
     Browser.document
         { init = init
-        , view = always { title = "EditSC", body = [] }
+        , view = view
         , update = never
         , subscriptions = always Sub.none
         }
@@ -22,3 +23,16 @@ init flags =
     ( TextDisplay ""
     , Cmd.none
     )
+
+
+view : Model -> Browser.Document Never
+view model =
+    { title = "EditSC"
+    , body =
+        case model of
+            TextDisplay content ->
+                [ Html.pre []
+                    [ Html.text content
+                    ]
+                ]
+    }
