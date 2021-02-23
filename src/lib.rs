@@ -1,38 +1,27 @@
 #[macro_use] mod utils;
 mod world;
 
-use seed::prelude::*;
+use wasm_bindgen::prelude::*;
 use world::World;
 
 
-struct Model {
+#[wasm_bindgen]
+pub struct Model {
     world: World,
 }
 
-fn init(_: Url, _: &mut impl Orders<Msg>) -> Model {
-    Model {
-        world: World::init(),
+
+#[wasm_bindgen]
+impl Model {
+    pub fn init() -> Model {
+        Model {
+            world: World::init(),
+        }
     }
-}
 
 
-enum Msg {
-}
-
-
-fn update(
-    main_msg: Msg,
-    model: &mut Model,
-    orders: &mut impl Orders<Msg>,
-) {
-    match main_msg {
+    pub fn update(&mut self) {
     }
-}
-
-
-fn view(model: &Model) -> Node<Msg> {
-    seed::div![
-    ]
 }
 
 

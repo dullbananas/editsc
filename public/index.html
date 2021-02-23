@@ -7,12 +7,15 @@
 	<body>
 		<script src="./elm.js"></script>
 		<script type="module">
-			import init from './bindings.js';
-			init('./main.wasm');
-			var elm = Elm.Editsc.init({
-				flags: {
-				}
-			});
+			import init, {Model} from './bindings.js';
+			(async function() {
+				await init('./main.wasm');
+				var rust = Model.init();
+				var elm = Elm.Editsc.init({
+					flags: {
+					}
+				});
+			})();
 		</script>
 	</body>
 </html>

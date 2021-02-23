@@ -5,7 +5,6 @@ edition = "2018"
 
 [dependencies]
 console_error_panic_hook = { version = "0.1" }
-seed = { version = "0.8" }
 wasm-bindgen = { version = "0.2" }
 web-sys = { version = "0.3", features = ["EventTarget", "FileList", "HtmlInputElement", "Window"] }
 
