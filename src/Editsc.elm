@@ -1,38 +1,21 @@
 module Editsc exposing (main)
 
 import Browser
-import Html
+import Editsc.Model as Model exposing (Model, Msg)
 
 
-main : Program () Model Never
+main : Program () Model Msg
 main =
     Browser.document
         { init = init
-        , view = view
-        , update = never
-        , subscriptions = always Sub.none
+        , view = Model.view
+        , update = Model.update
+        , subscriptions = Model.subscriptions
         }
 
 
-type Model
-    = TextDisplay String
-
-
-init : () -> (Model, Cmd Never)
+init : () -> (Model, Cmd Msg)
 init flags =
-    ( TextDisplay ""
+    ( Model.textDisplay ""
     , Cmd.none
     )
-
-
-view : Model -> Browser.Document Never
-view model =
-    { title = "EditSC"
-    , body =
-        case model of
-            TextDisplay content ->
-                [ Html.pre []
-                    [ Html.text content
-                    ]
-                ]
-    }
