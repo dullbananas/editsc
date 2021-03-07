@@ -7,6 +7,7 @@ module Editsc.Model.Editor exposing
     , view
     )
 
+import Browser.Events
 import Editsc.Viewport as Viewport exposing (Viewport)
 import Html exposing (Html, Attribute)
 import Html.Attributes as Attr
@@ -21,6 +22,7 @@ type Model
 
 type Msg
     = GotViewport Viewport
+    | FramePassed Float
 
 
 init : () -> (Model, Cmd Msg)
@@ -43,11 +45,19 @@ update msg (Model model) =
             , Cmd.none
             )
 
+        FramePassed milliseconds ->
+            ( Model model
+            , Cmd.batch
+                [ Task.perform GotViewport Viewport.get
+                ]
+            )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions (Model model) =
     Sub.batch
-        []
+        [ Browser.Events.onAnimationFrameDelta FramePassed
+        ]
 
 
 view : Model -> List (Html Msg)
