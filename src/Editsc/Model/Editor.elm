@@ -7,7 +7,8 @@ module Editsc.Model.Editor exposing
     )
 
 import Editsc.Viewport as Viewport exposing (Viewport)
-import Html exposing (Html)
+import Html exposing (Html, Attribute)
+import Html.Attributes as Attr
 import Task exposing (Task)
 
 
@@ -43,6 +44,19 @@ update msg (Model model) =
 
 
 view : Model -> List (Html Msg)
-view model =
-    [
+view (Model model) =
+    [ viewCanvas model.viewport
     ]
+
+
+viewCanvas : Viewport -> Html Msg
+viewCanvas viewport =
+    let
+        width = Viewport.width viewport
+        height = Viewport.height viewport
+    in
+    Html.img
+        [ Attr.width (width identity)
+        , Attr.height (height identity)
+        , Attr.src "https://carolinanewsandreporter.cic.sc.edu/wp-content/uploads/2018/11/FallingNug1.jpg"
+        ] []
