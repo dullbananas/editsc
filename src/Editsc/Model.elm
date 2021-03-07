@@ -68,7 +68,13 @@ map mapMsg mapModel (model, cmd) =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    case model of
+        EditorDisplay editor ->
+            Editor.subscriptions editor
+                |> Sub.map EditorMsg
+        
+        TextDisplay _ ->
+            Sub.none
 
 
 view : Model -> Browser.Document Msg

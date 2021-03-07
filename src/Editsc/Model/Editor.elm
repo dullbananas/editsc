@@ -3,6 +3,7 @@ module Editsc.Model.Editor exposing
     , Msg
     , init
     , update
+    , subscriptions
     , view
     )
 
@@ -41,6 +42,12 @@ update msg (Model model) =
                 }
             , Cmd.none
             )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions (Model model) =
+    Sub.batch
+        []
 
 
 view : Model -> List (Html Msg)
